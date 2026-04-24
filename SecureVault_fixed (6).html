@@ -1,0 +1,2438 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="theme-color" content="#0f1923"/>
+<title>SecureVault – Document Safe</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@600;700;800&family=DM+Sans:wght@300;400;500;600&display=swap');
+
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0f1923;--bg2:#151f2e;--bg3:#1c2a3a;--bg4:#243447;
+  --pri:#00d4aa;--pri-dark:#00a882;--pri-glow:rgba(0,212,170,.18);
+  --acc:#ff6b35;--acc2:#ffd166;
+  --text:#e8f0fe;--text2:#8fa3bc;--text3:#4a6080;
+  --danger:#ff4757;--warn:#ffd166;--ok:#00d4aa;
+  --border:rgba(0,212,170,.15);--border2:rgba(255,255,255,.07);
+  --card-shadow:0 4px 32px rgba(0,0,0,.4);
+  --radius:12px;
+}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);font-size:13px;min-height:100vh;overflow-x:hidden}
+body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellipse 80% 60% at 50% -10%,rgba(0,212,170,.08),transparent);pointer-events:none;z-index:0}
+
+/* ── LOGIN ── */
+.login-screen{position:fixed;inset:0;background:var(--bg);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px}
+.login-screen.hide{display:none}
+.login-box{width:100%;max-width:380px;background:var(--bg2);border:1px solid var(--border);border-radius:20px;padding:36px 28px;box-shadow:0 24px 80px rgba(0,0,0,.6),0 0 0 1px rgba(0,212,170,.08)}
+.login-icon{width:64px;height:64px;background:linear-gradient(135deg,var(--pri),var(--pri-dark));border-radius:18px;display:flex;align-items:center;justify-content:center;font-size:28px;margin:0 auto 20px;box-shadow:0 8px 32px var(--pri-glow)}
+.login-title{font-family:'Syne',sans-serif;font-size:22px;font-weight:800;text-align:center;color:var(--text);margin-bottom:4px}
+.login-sub{font-size:11px;color:var(--text2);text-align:center;margin-bottom:24px;letter-spacing:.5px}
+.inp-wrap{position:relative;margin-bottom:12px}
+.inp-wrap input{width:100%;background:var(--bg3);border:1px solid var(--border2);border-radius:10px;padding:12px 14px 12px 42px;font-size:13px;color:var(--text);font-family:'DM Sans',sans-serif;outline:none;transition:.2s}
+.inp-wrap input:focus{border-color:var(--pri);box-shadow:0 0 0 3px var(--pri-glow)}
+.inp-wrap .ic{position:absolute;left:13px;top:50%;transform:translateY(-50%);font-size:15px;pointer-events:none}
+.inp-wrap .eye{position:absolute;right:12px;top:50%;transform:translateY(-50%);cursor:pointer;font-size:14px;color:var(--text3)}
+.login-btn{width:100%;padding:13px;background:linear-gradient(135deg,var(--pri),var(--pri-dark));border:none;border-radius:10px;font-size:14px;font-weight:700;color:#0f1923;cursor:pointer;font-family:'Syne',sans-serif;letter-spacing:.5px;margin-top:4px;transition:.2s}
+.login-btn:hover{opacity:.9;transform:translateY(-1px)}
+.login-err{color:var(--danger);font-size:11px;text-align:center;margin-top:8px;min-height:16px}
+.set-pwd-hint{font-size:11px;color:var(--text2);text-align:center;margin-top:10px}
+.set-pwd-hint span{color:var(--pri);cursor:pointer;text-decoration:underline}
+
+/* ── TOPBAR ── */
+.topbar{background:var(--bg2);border-bottom:1px solid var(--border2);padding:12px 16px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;backdrop-filter:blur(10px)}
+.topbar-l{display:flex;align-items:center;gap:10px}
+.vault-icon{width:34px;height:34px;background:linear-gradient(135deg,var(--pri),var(--pri-dark));border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0}
+.topbar h1{font-family:'Syne',sans-serif;font-size:15px;font-weight:800;color:var(--text)}
+.topbar p{font-size:10px;color:var(--text2);margin-top:1px}
+.topbar-r{display:flex;align-items:center;gap:8px}
+.lock-btn{background:var(--bg3);border:1px solid var(--border2);border-radius:8px;padding:7px 12px;font-size:11px;color:var(--text2);cursor:pointer;display:flex;align-items:center;gap:5px;transition:.2s}
+.lock-btn:hover{border-color:var(--danger);color:var(--danger)}
+
+/* ── NAV ── */
+.nav{display:flex;background:var(--bg2);border-bottom:1px solid var(--border2);overflow-x:auto;scrollbar-width:none}
+.nav::-webkit-scrollbar{display:none}
+.nav button{flex:none;padding:10px 14px;border:none;background:transparent;font-size:11px;font-weight:600;color:var(--text3);cursor:pointer;border-bottom:2px solid transparent;white-space:nowrap;font-family:'DM Sans',sans-serif;transition:.15s}
+.nav button.act{color:var(--pri);border-bottom-color:var(--pri)}
+.nav button:hover:not(.act){color:var(--text2)}
+
+/* ── PANELS ── */
+.panel{display:none;padding:14px;max-width:900px;margin:0 auto;position:relative;z-index:1}
+.panel.act{display:block}
+
+/* ── STATS ── */
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px;margin-bottom:16px}
+.stat{background:var(--bg2);border:1px solid var(--border2);border-radius:var(--radius);padding:14px;transition:.2s}
+.stat:hover{border-color:var(--border);transform:translateY(-2px)}
+.stat .lb{font-size:10px;color:var(--text2);font-weight:600;text-transform:uppercase;letter-spacing:.6px;margin-bottom:6px}
+.stat .vl{font-size:22px;font-weight:700;font-family:'Syne',sans-serif}
+.stat .vl.g{color:var(--ok)}.stat .vl.r{color:var(--danger)}.stat .vl.w{color:var(--warn)}.stat .vl.p{color:var(--pri)}
+
+/* ── SECTION HEADER ── */
+.sec{font-size:10px;font-weight:700;color:var(--text3);letter-spacing:.8px;text-transform:uppercase;margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid var(--border2)}
+
+/* ── UPLOAD ZONE ── */
+.upload-zone{border:2px dashed var(--border);border-radius:var(--radius);padding:28px;text-align:center;cursor:pointer;transition:.25s;background:var(--bg2);margin-bottom:14px;position:relative}
+.upload-zone:hover,.upload-zone.drag{border-color:var(--pri);background:var(--pri-glow)}
+.upload-zone input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}.upload-zone label input{position:static;width:0;height:0;opacity:0}
+.upload-zone .uz-icon{font-size:32px;margin-bottom:8px}
+.upload-zone .uz-title{font-family:'Syne',sans-serif;font-size:14px;font-weight:700;color:var(--text);margin-bottom:4px}
+.upload-zone .uz-sub{font-size:11px;color:var(--text2)}
+.uz-formats{display:flex;gap:6px;justify-content:center;flex-wrap:wrap;margin-top:10px}
+.fmt-badge{background:var(--bg3);border:1px solid var(--border2);border-radius:6px;padding:3px 8px;font-size:10px;font-weight:600;font-family:'DM Mono',monospace;color:var(--pri)}
+
+/* ── FORM ── */
+.row{display:flex;gap:10px;margin-bottom:10px;flex-wrap:wrap}
+.f{display:flex;flex-direction:column;gap:4px;flex:1;min-width:120px}
+.f label{font-size:11px;color:var(--text2);font-weight:600}
+.f input,.f select,.f textarea{padding:9px 12px;border:1px solid var(--border2);border-radius:9px;font-size:12px;background:var(--bg3);color:var(--text);outline:none;width:100%;font-family:'DM Sans',sans-serif;transition:.2s}
+.f input:focus,.f select:focus,.f textarea:focus{border-color:var(--pri);box-shadow:0 0 0 2px var(--pri-glow)}
+.f select option{background:var(--bg3)}
+.f textarea{min-height:60px;resize:vertical}
+
+/* ── BUTTONS ── */
+.btn{padding:9px 16px;border-radius:9px;border:none;font-size:12px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;transition:.15s;display:inline-flex;align-items:center;gap:5px}
+.bp{background:linear-gradient(135deg,var(--pri),var(--pri-dark));color:#0f1923}
+.bp:hover{opacity:.9;transform:translateY(-1px)}
+.bd{background:var(--danger);color:#fff}.bd:hover{opacity:.85}
+.bo{background:var(--bg3);border:1px solid var(--border2);color:var(--text2)}.bo:hover{border-color:var(--pri);color:var(--pri)}
+.bw{background:#25d366;color:#fff}.bw:hover{opacity:.85}
+.be{background:linear-gradient(135deg,#4f8ef7,#2563eb);color:#fff}.be:hover{opacity:.85}
+
+/* ── EMAIL MODAL ── */
+.email-modal-label{font-size:11px;color:var(--text2);font-weight:600;margin-bottom:4px;display:block}
+.email-modal-input{width:100%;padding:9px 12px;border:1px solid var(--border2);border-radius:9px;font-size:12px;background:var(--bg3);color:var(--text);outline:none;font-family:'DM Sans',sans-serif;transition:.2s;margin-bottom:10px}
+.email-modal-input:focus{border-color:var(--pri);box-shadow:0 0 0 2px var(--pri-glow)}
+.email-modal-textarea{width:100%;padding:9px 12px;border:1px solid var(--border2);border-radius:9px;font-size:12px;background:var(--bg3);color:var(--text);outline:none;font-family:'DM Mono',monospace;font-size:11px;min-height:130px;resize:vertical;line-height:1.7;transition:.2s;margin-bottom:10px}
+.email-modal-textarea:focus{border-color:var(--pri);box-shadow:0 0 0 2px var(--pri-glow)}
+.email-attach-preview{background:var(--bg3);border:1px solid var(--border);border-radius:9px;padding:10px 13px;display:flex;align-items:center;gap:10px;margin-bottom:12px;font-size:11px;color:var(--text2)}
+.email-attach-preview .ea-icon{font-size:22px;flex-shrink:0}
+.email-attach-preview .ea-info .ea-name{font-weight:700;color:var(--text);font-size:12px}
+.email-attach-preview .ea-info .ea-note{font-size:10px;color:var(--text3);margin-top:2px}
+.email-method-tabs{display:flex;gap:8px;margin-bottom:14px}
+.em-tab{flex:1;padding:8px;border-radius:9px;border:1px solid var(--border2);background:var(--bg3);color:var(--text2);font-size:11px;font-weight:600;cursor:pointer;text-align:center;transition:.15s;font-family:'DM Sans',sans-serif}
+.em-tab.act{background:linear-gradient(135deg,#4f8ef7,#2563eb);color:#fff;border-color:#4f8ef7}
+.em-tab:hover:not(.act){border-color:#4f8ef7;color:#4f8ef7}
+.sm{padding:5px 10px;font-size:11px}
+
+/* ── DOCUMENT CARDS ── */
+.doc-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px}
+.doc-card{background:var(--bg2);border:1px solid var(--border2);border-radius:var(--radius);overflow:hidden;transition:.2s;cursor:pointer}
+.doc-card:hover{border-color:var(--border);transform:translateY(-3px);box-shadow:var(--card-shadow)}
+.doc-card.expired{border-color:rgba(255,71,87,.3)}
+.doc-card.expiring{border-color:rgba(255,209,102,.3)}
+.doc-thumb{height:130px;background:var(--bg3);display:flex;align-items:center;justify-content:center;font-size:48px;position:relative;overflow:hidden}
+.doc-thumb img{width:100%;height:100%;object-fit:cover}
+.doc-thumb .doc-type-badge{position:absolute;top:8px;right:8px;background:rgba(0,0,0,.7);border-radius:6px;padding:2px 7px;font-size:9px;font-weight:700;font-family:'DM Mono',monospace;color:var(--pri);border:1px solid var(--border)}
+.doc-thumb .blur-overlay{position:absolute;inset:0;backdrop-filter:blur(16px);background:rgba(15,25,35,.5);display:flex;align-items:center;justify-content:center;flex-direction:column;gap:6px}
+.doc-info{padding:10px}
+.doc-name{font-weight:700;font-size:12px;color:var(--text);margin-bottom:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.doc-cat{font-size:10px;color:var(--text2);margin-bottom:6px}
+.doc-exp{font-size:10px;font-weight:600;padding:2px 8px;border-radius:20px;display:inline-block}
+.exp-ok{background:rgba(0,212,170,.1);color:var(--ok)}
+.exp-warn{background:rgba(255,209,102,.1);color:var(--warn)}
+.exp-bad{background:rgba(255,71,87,.1);color:var(--danger)}
+.exp-none{background:var(--bg3);color:var(--text3)}
+.doc-actions{display:flex;gap:4px;margin-top:8px;flex-wrap:wrap}
+
+/* ── LIST VIEW ── */
+.doc-list{background:var(--bg2);border:1px solid var(--border2);border-radius:var(--radius);overflow:hidden}
+.doc-list-item{display:flex;align-items:center;gap:12px;padding:12px 14px;border-bottom:1px solid var(--border2);transition:.15s;cursor:pointer}
+.doc-list-item:last-child{border-bottom:none}
+.doc-list-item:hover{background:var(--bg3)}
+.dli-icon{width:38px;height:38px;background:var(--bg3);border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0}
+.dli-info{flex:1;min-width:0}
+.dli-name{font-weight:600;font-size:12px;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.dli-meta{font-size:10px;color:var(--text2);margin-top:2px}
+.dli-right{display:flex;align-items:center;gap:8px;flex-shrink:0}
+
+/* ── OCR RESULT ── */
+.ocr-box{background:var(--bg3);border:1px solid var(--border);border-radius:9px;padding:12px;font-family:'DM Mono',monospace;font-size:11px;color:var(--text2);max-height:200px;overflow-y:auto;white-space:pre-wrap;line-height:1.7}
+.ocr-loading{display:flex;align-items:center;gap:8px;color:var(--pri);font-size:12px}
+.spin{animation:spin .8s linear infinite;display:inline-block}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* ── MODAL ── */
+.ov{display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:1000;align-items:center;justify-content:center;padding:16px}
+.ov.open{display:flex}
+.modal{background:var(--bg2);border:1px solid var(--border);border-radius:16px;padding:20px;width:100%;max-width:540px;max-height:92vh;overflow-y:auto;box-shadow:0 24px 80px rgba(0,0,0,.6)}
+.mhdr{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;padding-bottom:12px;border-bottom:1px solid var(--border2)}
+.mhdr span{font-family:'Syne',sans-serif;font-size:16px;font-weight:800;color:var(--text)}
+.xb{background:var(--bg3);border:1px solid var(--border2);width:28px;height:28px;border-radius:7px;cursor:pointer;color:var(--text2);font-size:14px;display:flex;align-items:center;justify-content:center;border:none;transition:.15s}
+.xb:hover{background:var(--danger);color:#fff}
+
+/* ── VIEW MODAL ── */
+.view-img{width:100%;max-height:360px;object-fit:contain;border-radius:9px;background:var(--bg3);border:1px solid var(--border2)}
+.meta-grid{display:grid;grid-template-columns:auto 1fr;gap:5px 14px;font-size:12px;margin:12px 0}
+.meta-grid .ml{color:var(--text2);font-weight:600}.meta-grid .mv{color:var(--text)}
+
+/* ── SEARCH BAR ── */
+.sbar{display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;align-items:center}
+.sbar input,.sbar select{padding:9px 12px;border:1px solid var(--border2);border-radius:9px;font-size:12px;background:var(--bg3);color:var(--text);outline:none;font-family:'DM Sans',sans-serif}
+.sbar input:focus,.sbar select:focus{border-color:var(--pri)}
+.sbar input{flex:1;min-width:140px}
+.sbar select option{background:var(--bg3)}
+
+/* ── FILTER TABS ── */
+.ftabs{display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap}
+.ftab{padding:5px 12px;border-radius:20px;font-size:11px;font-weight:600;cursor:pointer;border:1px solid var(--border2);background:var(--bg2);color:var(--text2);transition:.15s}
+.ftab.act{background:var(--pri);color:#0f1923;border-color:var(--pri)}
+.ftab:hover:not(.act){border-color:var(--pri);color:var(--pri)}
+
+/* ── EXPIRY ALERT BANNER ── */
+.alert-bar{background:linear-gradient(135deg,rgba(255,71,87,.12),rgba(255,71,87,.06));border:1px solid rgba(255,71,87,.25);border-radius:10px;padding:10px 14px;margin-bottom:14px;display:flex;align-items:center;gap:10px;font-size:12px;color:var(--danger)}
+.alert-bar.warn{background:linear-gradient(135deg,rgba(255,209,102,.12),rgba(255,209,102,.06));border-color:rgba(255,209,102,.25);color:var(--warn)}
+
+/* ── SETTINGS ── */
+.set-card{background:var(--bg2);border:1px solid var(--border2);border-radius:var(--radius);padding:16px;margin-bottom:12px}
+.set-title{font-family:'Syne',sans-serif;font-size:13px;font-weight:700;color:var(--text);margin-bottom:12px;display:flex;align-items:center;gap:7px}
+.tog-row{display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border2)}
+.tog-row:last-child{border-bottom:none}
+.tog-row .tl{font-size:12px;color:var(--text)}.tog-row .ts{font-size:10px;color:var(--text2);margin-top:2px}
+.tog{position:relative;width:40px;height:22px;flex-shrink:0}
+.tog input{opacity:0;width:0;height:0}
+.tog-sl{position:absolute;inset:0;background:var(--bg3);border-radius:20px;cursor:pointer;border:1px solid var(--border2);transition:.2s}
+.tog-sl:before{content:'';position:absolute;width:16px;height:16px;left:2px;top:2px;background:var(--text3);border-radius:50%;transition:.2s}
+.tog input:checked+.tog-sl{background:var(--pri);border-color:var(--pri)}
+.tog input:checked+.tog-sl:before{transform:translateX(18px);background:#0f1923}
+
+/* ── EMPTY ── */
+.empty{text-align:center;padding:48px 20px;color:var(--text3);background:var(--bg2);border-radius:var(--radius);border:1px dashed var(--border2)}
+.empty-icon{font-size:48px;margin-bottom:12px;opacity:.5}
+.empty-title{font-family:'Syne',sans-serif;font-size:14px;font-weight:700;color:var(--text2);margin-bottom:4px}
+
+/* ── VIEW TOGGLE ── */
+.view-tog{display:flex;gap:4px;background:var(--bg3);border-radius:8px;padding:3px}
+.vt-btn{width:28px;height:24px;border:none;background:transparent;border-radius:5px;cursor:pointer;color:var(--text3);font-size:13px;display:flex;align-items:center;justify-content:center;transition:.15s}
+.vt-btn.act{background:var(--bg2);color:var(--pri)}
+
+/* ── PROGRESS ── */
+.prog-bar{height:4px;background:var(--bg3);border-radius:4px;overflow:hidden;margin-top:8px}
+.prog-fill{height:100%;border-radius:4px;transition:width .3s}
+
+/* ── PDF VIEWER ── */
+.pdf-frame{width:100%;height:420px;border:none;border-radius:9px;background:var(--bg3)}
+
+/* ── TOAST ── */
+.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%) translateY(100px);background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:10px 18px;font-size:12px;font-weight:600;color:var(--text);z-index:9999;transition:transform .3s ease;white-space:nowrap;box-shadow:0 8px 32px rgba(0,0,0,.4)}
+.toast.show{transform:translateX(-50%) translateY(0)}
+.toast.ok{border-color:var(--ok);color:var(--ok)}
+.toast.err{border-color:var(--danger);color:var(--danger)}
+
+/* ── EXPIRY TIMELINE ── */
+.timeline{display:flex;flex-direction:column;gap:8px}
+.tl-item{display:flex;align-items:center;gap:12px;background:var(--bg2);border:1px solid var(--border2);border-radius:10px;padding:10px 14px}
+.tl-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+.tl-info{flex:1}.tl-name{font-size:12px;font-weight:600;color:var(--text)}.tl-date{font-size:10px;color:var(--text2);margin-top:2px}
+.tl-days{font-size:11px;font-weight:700;padding:3px 9px;border-radius:20px}
+
+/* ── PIN LOCK SCREEN ── */
+#pin-screen{
+  position:fixed;inset:0;z-index:9998;
+  background:var(--bg);
+  display:none;flex-direction:column;align-items:center;justify-content:center;
+  padding:20px;
+}
+#pin-screen.active{display:flex}
+#pin-screen .pin-glow{
+  position:absolute;inset:0;
+  background:radial-gradient(ellipse 65% 55% at 50% 35%,rgba(0,212,170,.1),transparent 70%);
+  pointer-events:none;
+}
+.pin-logo{
+  width:68px;height:68px;
+  background:linear-gradient(135deg,var(--pri),var(--pri-dark));
+  border-radius:20px;
+  display:flex;align-items:center;justify-content:center;
+  font-size:30px;
+  box-shadow:0 8px 32px rgba(0,212,170,.25);
+  margin-bottom:16px;
+}
+.pin-title{
+  font-family:'Syne',sans-serif;
+  font-size:20px;font-weight:800;
+  color:var(--text);margin-bottom:4px;text-align:center;
+}
+.pin-sub{
+  font-size:11px;color:var(--text2);
+  text-align:center;letter-spacing:.5px;margin-bottom:32px;
+}
+/* dots */
+.pin-dots{
+  display:flex;gap:14px;margin-bottom:36px;
+}
+.pin-dot{
+  width:14px;height:14px;
+  border-radius:50%;
+  border:2px solid var(--text3);
+  background:transparent;
+  transition:all .2s;
+}
+.pin-dot.filled{
+  background:var(--pri);
+  border-color:var(--pri);
+  box-shadow:0 0 10px rgba(0,212,170,.5);
+  transform:scale(1.15);
+}
+.pin-dot.error{
+  background:var(--danger);
+  border-color:var(--danger);
+  box-shadow:0 0 10px rgba(255,71,87,.5);
+}
+/* keypad */
+.pin-keypad{
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  gap:14px;
+  margin-bottom:20px;
+}
+.pin-key{
+  width:72px;height:72px;
+  border-radius:50%;
+  border:2px solid var(--border2);
+  background:var(--bg2);
+  color:var(--text);
+  font-family:'Syne',sans-serif;
+  font-size:22px;font-weight:700;
+  cursor:pointer;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  transition:all .15s;
+  position:relative;
+  overflow:hidden;
+  user-select:none;
+  -webkit-tap-highlight-color:transparent;
+}
+.pin-key:hover{
+  background:var(--bg3);
+  border-color:var(--pri);
+  box-shadow:0 0 0 3px var(--pri-glow);
+}
+.pin-key:active{
+  transform:scale(.93);
+  background:var(--bg4);
+}
+.pin-key .pk-sub{
+  font-size:8px;font-weight:600;
+  color:var(--text3);letter-spacing:1px;
+  font-family:'DM Sans',sans-serif;
+  margin-top:1px;
+}
+.pin-key.del{
+  font-size:18px;
+  border-color:transparent;
+  background:transparent;
+  color:var(--text2);
+}
+.pin-key.del:hover{color:var(--danger);border-color:rgba(255,71,87,.2);background:rgba(255,71,87,.06)}
+.pin-key.ok{
+  background:linear-gradient(135deg,var(--pri),var(--pri-dark));
+  border-color:var(--pri);
+  color:#0f1923;font-size:18px;
+  box-shadow:0 4px 20px rgba(0,212,170,.25);
+}
+.pin-key.ok:hover{opacity:.9;box-shadow:0 6px 24px rgba(0,212,170,.4)}
+.pin-err{
+  font-size:12px;color:var(--danger);
+  text-align:center;min-height:18px;font-weight:600;
+  margin-bottom:8px;
+}
+.pin-alt-link{
+  font-size:11px;color:var(--text3);
+  text-align:center;cursor:pointer;
+  margin-top:4px;
+  text-decoration:underline;
+  transition:.15s;
+}
+.pin-alt-link:hover{color:var(--pri)}
+
+/* shake animation */
+@keyframes pin-shake{
+  0%,100%{transform:translateX(0)}
+  20%{transform:translateX(-8px)}
+  40%{transform:translateX(8px)}
+  60%{transform:translateX(-6px)}
+  80%{transform:translateX(6px)}
+}
+.pin-shake{animation:pin-shake .35s ease}
+
+/* ── SET PIN MODAL ── */
+#ov-setpin .pin-step{display:none}
+#ov-setpin .pin-step.act{display:flex;flex-direction:column;align-items:center}
+
+/* scrollbar */
+::-webkit-scrollbar{width:4px;height:4px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:4px}
+
+/* ── SPLASH SCREEN ── */
+#splash-screen{
+  position:fixed;inset:0;z-index:99999;
+  background:var(--bg);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:0;
+  transition:opacity .6s ease;
+}
+#splash-screen.fade-out{opacity:0;pointer-events:none}
+.splash-glow{
+  position:absolute;inset:0;
+  background:radial-gradient(ellipse 70% 60% at 50% 40%, rgba(0,212,170,.13), transparent 70%);
+  pointer-events:none;
+}
+.splash-logo-wrap{
+  position:relative;
+  width:90px;height:90px;
+  background:linear-gradient(135deg,var(--pri),var(--pri-dark));
+  border-radius:26px;
+  display:flex;align-items:center;justify-content:center;
+  font-size:42px;
+  box-shadow:0 0 0 0 rgba(0,212,170,.4);
+  animation:splash-pulse 2s ease-in-out infinite;
+  margin-bottom:28px;
+}
+@keyframes splash-pulse{
+  0%,100%{box-shadow:0 0 0 0 rgba(0,212,170,.35),0 16px 48px rgba(0,212,170,.2)}
+  50%{box-shadow:0 0 0 18px rgba(0,212,170,.0),0 16px 48px rgba(0,212,170,.35)}
+}
+.splash-app-name{
+  font-family:'Syne',sans-serif;
+  font-size:30px;font-weight:800;
+  color:var(--text);
+  letter-spacing:.5px;
+  margin-bottom:4px;
+}
+.splash-tagline{
+  font-size:11px;color:var(--text2);
+  letter-spacing:2px;text-transform:uppercase;
+  margin-bottom:48px;
+}
+.splash-bar-wrap{
+  width:180px;height:3px;
+  background:var(--bg3);border-radius:4px;overflow:hidden;
+  margin-bottom:40px;
+}
+.splash-bar-fill{
+  height:100%;width:0%;
+  background:linear-gradient(90deg,var(--pri),var(--acc2));
+  border-radius:4px;
+  animation:splash-load 2s cubic-bezier(.4,0,.2,1) forwards;
+}
+@keyframes splash-load{
+  0%{width:0%}
+  60%{width:75%}
+  85%{width:92%}
+  100%{width:100%}
+}
+.splash-footer{
+  position:absolute;bottom:32px;left:50%;transform:translateX(-50%);
+  display:flex;flex-direction:column;align-items:center;gap:4px;
+  white-space:nowrap;
+}
+.splash-dev{
+  font-size:10px;color:var(--text3);letter-spacing:.5px;
+}
+.splash-company{
+  font-family:'Syne',sans-serif;
+  font-size:13px;font-weight:700;
+  color:var(--pri);letter-spacing:.5px;
+}
+.splash-version{
+  font-family:'DM Mono',monospace;
+  font-size:10px;color:var(--text3);
+  margin-top:2px;
+}
+</style>
+</head>
+<body>
+
+<!-- ══ PIN LOCK SCREEN ══ -->
+<div id="pin-screen">
+  <div class="pin-glow"></div>
+  <div class="pin-logo">🔐</div>
+  <div class="pin-title">SecureVault</div>
+  <div class="pin-sub" id="pin-screen-sub">ENTER YOUR PIN</div>
+  <div class="pin-dots" id="pin-dots">
+    <div class="pin-dot" id="pd0"></div>
+    <div class="pin-dot" id="pd1"></div>
+    <div class="pin-dot" id="pd2"></div>
+    <div class="pin-dot" id="pd3"></div>
+  </div>
+  <div class="pin-err" id="pin-err"></div>
+  <div class="pin-keypad">
+    <button class="pin-key" onclick="pinKey('1')"><span>1</span></button>
+    <button class="pin-key" onclick="pinKey('2')"><span>2</span><span class="pk-sub">ABC</span></button>
+    <button class="pin-key" onclick="pinKey('3')"><span>3</span><span class="pk-sub">DEF</span></button>
+    <button class="pin-key" onclick="pinKey('4')"><span>4</span><span class="pk-sub">GHI</span></button>
+    <button class="pin-key" onclick="pinKey('5')"><span>5</span><span class="pk-sub">JKL</span></button>
+    <button class="pin-key" onclick="pinKey('6')"><span>6</span><span class="pk-sub">MNO</span></button>
+    <button class="pin-key" onclick="pinKey('7')"><span>7</span><span class="pk-sub">PQRS</span></button>
+    <button class="pin-key" onclick="pinKey('8')"><span>8</span><span class="pk-sub">TUV</span></button>
+    <button class="pin-key" onclick="pinKey('9')"><span>9</span><span class="pk-sub">WXYZ</span></button>
+    <button class="pin-key del" onclick="pinDel()">&#x232B;</button>
+    <button class="pin-key" onclick="pinKey('0')"><span>0</span></button>
+    <button class="pin-key ok" onclick="pinSubmit()">&#x2713;</button>
+  </div>
+  <div class="pin-alt-link" onclick="switchToPassword()">Use Password Instead</div>
+</div>
+
+<!-- ══ SET PIN MODAL ══ -->
+<div class="ov" id="ov-setpin" style="z-index:99999">
+  <div class="modal" style="max-width:360px;text-align:center">
+    <div class="mhdr"><span>&#x1F522; Set PIN Lock</span><button class="xb" onclick="closeOv('ov-setpin')">&#x2715;</button></div>
+    <div class="pin-step act" id="setpin-step1">
+      <p style="font-size:11px;color:var(--text2);margin-bottom:20px">Create a 4-digit PIN for quick access to your vault.</p>
+      <div class="pin-dots" id="setpin-dots1">
+        <div class="pin-dot" id="sp1d0"></div><div class="pin-dot" id="sp1d1"></div>
+        <div class="pin-dot" id="sp1d2"></div><div class="pin-dot" id="sp1d3"></div>
+      </div>
+      <div class="pin-err" id="setpin-err1"></div>
+      <div class="pin-keypad">
+        <button class="pin-key" onclick="setPinKey(1,'1')"><span>1</span></button>
+        <button class="pin-key" onclick="setPinKey(1,'2')"><span>2</span><span class="pk-sub">ABC</span></button>
+        <button class="pin-key" onclick="setPinKey(1,'3')"><span>3</span><span class="pk-sub">DEF</span></button>
+        <button class="pin-key" onclick="setPinKey(1,'4')"><span>4</span><span class="pk-sub">GHI</span></button>
+        <button class="pin-key" onclick="setPinKey(1,'5')"><span>5</span><span class="pk-sub">JKL</span></button>
+        <button class="pin-key" onclick="setPinKey(1,'6')"><span>6</span><span class="pk-sub">MNO</span></button>
+        <button class="pin-key" onclick="setPinKey(1,'7')"><span>7</span><span class="pk-sub">PQRS</span></button>
+        <button class="pin-key" onclick="setPinKey(1,'8')"><span>8</span><span class="pk-sub">TUV</span></button>
+        <button class="pin-key" onclick="setPinKey(1,'9')"><span>9</span><span class="pk-sub">WXYZ</span></button>
+        <button class="pin-key del" onclick="setPinDel(1)">&#x232B;</button>
+        <button class="pin-key" onclick="setPinKey(1,'0')"><span>0</span></button>
+        <button class="pin-key ok" onclick="setPinNext()">&#x2713;</button>
+      </div>
+    </div>
+    <div class="pin-step" id="setpin-step2">
+      <p style="font-size:11px;color:var(--text2);margin-bottom:20px">Re-enter your PIN to confirm.</p>
+      <div class="pin-dots" id="setpin-dots2">
+        <div class="pin-dot" id="sp2d0"></div><div class="pin-dot" id="sp2d1"></div>
+        <div class="pin-dot" id="sp2d2"></div><div class="pin-dot" id="sp2d3"></div>
+      </div>
+      <div class="pin-err" id="setpin-err2"></div>
+      <div class="pin-keypad">
+        <button class="pin-key" onclick="setPinKey(2,'1')"><span>1</span></button>
+        <button class="pin-key" onclick="setPinKey(2,'2')"><span>2</span><span class="pk-sub">ABC</span></button>
+        <button class="pin-key" onclick="setPinKey(2,'3')"><span>3</span><span class="pk-sub">DEF</span></button>
+        <button class="pin-key" onclick="setPinKey(2,'4')"><span>4</span><span class="pk-sub">GHI</span></button>
+        <button class="pin-key" onclick="setPinKey(2,'5')"><span>5</span><span class="pk-sub">JKL</span></button>
+        <button class="pin-key" onclick="setPinKey(2,'6')"><span>6</span><span class="pk-sub">MNO</span></button>
+        <button class="pin-key" onclick="setPinKey(2,'7')"><span>7</span><span class="pk-sub">PQRS</span></button>
+        <button class="pin-key" onclick="setPinKey(2,'8')"><span>8</span><span class="pk-sub">TUV</span></button>
+        <button class="pin-key" onclick="setPinKey(2,'9')"><span>9</span><span class="pk-sub">WXYZ</span></button>
+        <button class="pin-key del" onclick="setPinDel(2)">&#x232B;</button>
+        <button class="pin-key" onclick="setPinKey(2,'0')"><span>0</span></button>
+        <button class="pin-key ok" onclick="setPinSave()">&#x2713;</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ SPLASH SCREEN ══ -->
+<div id="splash-screen">
+  <div class="splash-glow"></div>
+  <div class="splash-logo-wrap">🔐</div>
+  <div class="splash-app-name">SecureVault</div>
+  <div class="splash-tagline">Your Private Document Safe</div>
+  <div class="splash-bar-wrap">
+    <div class="splash-bar-fill"></div>
+  </div>
+  <div class="splash-footer">
+    <div class="splash-dev">Developed by</div>
+    <div class="splash-company">GreenCheck Inc.</div>
+    <div class="splash-version">v 1.26</div>
+  </div>
+</div>
+
+<!-- ══ LOGIN SCREEN ══ -->
+<div class="login-screen" id="login-screen">
+  <div class="login-box">
+    <div class="login-icon">🔐</div>
+    <div class="login-title">SecureVault</div>
+    <div class="login-sub" id="login-sub-text">YOUR PRIVATE DOCUMENT SAFE</div>
+    <div class="inp-wrap">
+      <span class="ic">👤</span>
+      <input type="text" id="login-user" placeholder="Username" autocomplete="off"/>
+    </div>
+    <div class="inp-wrap">
+      <span class="ic">🔑</span>
+      <input type="password" id="login-pass" placeholder="Password" id="login-pass"/>
+      <span class="eye" onclick="togglePwd('login-pass',this)">👁</span>
+    </div>
+    <button class="login-btn" onclick="doLogin()">UNLOCK VAULT</button>
+    <div class="login-err" id="login-err"></div>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px">
+      <div class="set-pwd-hint" id="first-time-hint">First time? <span onclick="showSetupModal()">Set your password</span></div>
+      <div class="set-pwd-hint"><span onclick="showForgotModal()" style="color:var(--acc)">🔓 Forgot?</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ FORGOT PASSWORD MODAL ══ -->
+<div class="ov" id="ov-forgot" style="z-index:99999">
+  <div class="modal" style="max-width:360px">
+    <div class="mhdr"><span>🔓 Reset Vault</span><button class="xb" onclick="closeOv('ov-forgot')">✕</button></div>
+    <div id="forgot-step1">
+      <div style="background:rgba(255,71,87,.08);border:1px solid rgba(255,71,87,.2);border-radius:10px;padding:12px 14px;margin-bottom:14px;font-size:12px;color:var(--danger);line-height:1.7">
+        ⚠️ <b>Warning:</b> Resetting your vault will <b>delete ALL saved documents</b>. This cannot be undone.<br><br>
+        Type <b style="font-family:'DM Mono',monospace;color:var(--warn)">RESET VAULT</b> below to confirm.
+      </div>
+      <div class="f" style="margin-bottom:12px">
+        <label>Type RESET VAULT to confirm</label>
+        <input type="text" id="reset-confirm-text" placeholder="RESET VAULT" autocomplete="off" style="font-family:'DM Mono',monospace;letter-spacing:1px"/>
+      </div>
+      <div class="login-err" id="forgot-err"></div>
+      <div style="display:flex;gap:8px">
+        <button class="btn bd" style="flex:1" onclick="doReset()">🗑️ Reset Everything</button>
+        <button class="btn bo" style="flex:1" onclick="closeOv('ov-forgot')">Cancel</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ SETUP MODAL ══ -->
+<div class="ov" id="ov-setup" style="z-index:99999">
+  <div class="modal" style="max-width:360px">
+    <div class="mhdr"><span>🔧 Create Password</span><button class="xb" onclick="closeOv('ov-setup')">✕</button></div>
+    <p style="font-size:11px;color:var(--text2);margin-bottom:14px">Set your vault username & password. This cannot be recovered if lost.</p>
+    <div class="f" style="margin-bottom:10px"><label>Username</label><input type="text" id="setup-user" placeholder="e.g. admin"/></div>
+    <div class="f" style="margin-bottom:10px"><label>Password</label>
+      <div class="inp-wrap" style="margin-bottom:0"><input type="password" id="setup-pass" placeholder="Min 4 characters"/><span class="eye" onclick="togglePwd('setup-pass',this)">👁</span></div>
+    </div>
+    <div class="f" style="margin-bottom:14px"><label>Confirm Password</label><input type="password" id="setup-conf" placeholder="Re-enter password"/></div>
+    <div class="login-err" id="setup-err"></div>
+    <button class="btn bp" style="width:100%" onclick="saveSetup()">✅ Save & Login</button>
+  </div>
+</div>
+
+<!-- ══ MAIN APP ══ -->
+<div id="main-app" style="display:none">
+
+<!-- Topbar -->
+<div class="topbar">
+  <div class="topbar-l">
+    <div class="vault-icon">🔐</div>
+    <div><div class="topbar h1" style="font-family:'Syne',sans-serif;font-size:15px;font-weight:800">SecureVault</div><div style="font-size:10px;color:var(--text2)" id="topbar-user-label">Document Safe</div></div>
+  </div>
+  <div class="topbar-r">
+    <button class="lock-btn" onclick="doLock()">🔒 Lock</button>
+  </div>
+</div>
+
+<!-- Nav -->
+<div class="nav">
+  <button class="act" onclick="showPanel('home',this)">🏠 Home</button>
+  <button onclick="showPanel('docs',this)">📁 Documents</button>
+  <button onclick="showPanel('add',this)">➕ Add Doc</button>
+  <button onclick="showPanel('expiry',this)">📅 Expiry</button>
+  <button onclick="showPanel('settings',this)">⚙️ Settings</button>
+</div>
+
+<!-- ══ HOME PANEL ══ -->
+<div class="panel act" id="panel-home">
+  <div id="expiry-alerts"></div>
+  <div class="stats" id="home-stats"></div>
+  <div class="sec">Recent Documents</div>
+  <div id="home-recent"></div>
+</div>
+
+<!-- ══ DOCUMENTS PANEL ══ -->
+<div class="panel" id="panel-docs">
+  <div class="sbar">
+    <input type="text" id="search-inp" placeholder="🔍 Search documents..." oninput="renderDocs()"/>
+    <select id="cat-filter" onchange="renderDocs()">
+      <option value="">All Categories</option>
+      <option>Aadhar Card</option>
+      <option>PAN Card</option>
+      <option>ID / Passport</option>
+      <option>Insurance</option>
+      <option>Medical</option>
+      <option>Legal</option>
+      <option>Financial</option>
+      <option>Vehicle</option>
+      <option>Property</option>
+      <option>Education</option>
+      <option>Other</option>
+    </select>
+    <div class="view-tog">
+      <button class="vt-btn act" id="vt-grid" onclick="setView('grid')">⊞</button>
+      <button class="vt-btn" id="vt-list" onclick="setView('list')">☰</button>
+    </div>
+  </div>
+  <div class="ftabs">
+    <div class="ftab act" onclick="setFilter('all',this)">All</div>
+    <div class="ftab" onclick="setFilter('ok',this)">✅ Valid</div>
+    <div class="ftab" onclick="setFilter('expiring',this)">⚠️ Expiring Soon</div>
+    <div class="ftab" onclick="setFilter('expired',this)">❌ Expired</div>
+    <div class="ftab" onclick="setFilter('noexp',this)">♾️ No Expiry</div>
+  </div>
+  <div id="docs-container"></div>
+</div>
+
+<!-- ══ ADD DOC PANEL ══ -->
+<div class="panel" id="panel-add">
+  <div class="sec">Upload Document</div>
+  <div class="upload-zone" id="upload-zone" style="cursor:default" onclick="void(0)">
+    <div class="uz-icon">📂</div>
+    <div class="uz-title">Choose how to upload</div>
+    <div class="uz-sub">Images, PDF &amp; Documents supported</div>
+    <div class="uz-formats" style="margin-bottom:14px">
+      <span class="fmt-badge">JPEG</span>
+      <span class="fmt-badge">PNG</span>
+      <span class="fmt-badge">PDF</span>
+      <span class="fmt-badge">WEBP</span>
+      <span class="fmt-badge">HEIC</span>
+    </div>
+    <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap">
+      <label style="cursor:pointer;background:linear-gradient(135deg,var(--pri),var(--pri-dark));color:#0f1923;padding:9px 18px;border-radius:9px;font-size:12px;font-weight:700;display:inline-flex;align-items:center;gap:6px">
+        <input type="file" id="file-inp" accept="image/*" multiple style="display:none" onchange="handleFiles(this.files)"/>
+        📷 Camera / Gallery
+      </label>
+      <label style="cursor:pointer;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:9px 18px;border-radius:9px;font-size:12px;font-weight:700;display:inline-flex;align-items:center;gap:6px">
+        <input type="file" id="file-inp-docs" accept=".pdf,.jpg,.jpeg,.png,.webp,.heic,.gif,application/pdf,image/*" multiple style="display:none" onchange="handleFiles(this.files)"/>
+        📄 Files / Documents
+      </label>
+    </div>
+  </div>
+  <div id="preview-area" style="display:none;margin-bottom:14px">
+    <div style="display:flex;gap:10px;flex-wrap:wrap" id="preview-thumbs"></div>
+  </div>
+  <div class="row">
+    <div class="f"><label>Document Name *</label><input type="text" id="doc-name" placeholder="e.g. Aadhaar Card"/></div>
+    <div class="f"><label>Category</label>
+      <select id="doc-cat">
+        <option>Aadhar Card</option>
+        <option>PAN Card</option>
+        <option>ID / Passport</option>
+        <option>Insurance</option>
+        <option>Medical</option>
+        <option>Legal</option>
+        <option>Financial</option>
+        <option>Vehicle</option>
+        <option>Property</option>
+        <option>Education</option>
+        <option>Other</option>
+      </select>
+    </div>
+  </div>
+  <div class="row">
+    <div class="f"><label>Issue Date</label><input type="date" id="doc-issue"/></div>
+    <div class="f"><label>Expiry / Renewal Date</label><input type="date" id="doc-expiry"/></div>
+  </div>
+  <div class="row">
+    <div class="f"><label>Document Number</label><input type="text" id="doc-number" placeholder="ID / Reference number"/></div>
+    <div class="f"><label>Issued By</label><input type="text" id="doc-issuer" placeholder="e.g. Government of India"/></div>
+  </div>
+  <div class="f" style="margin-bottom:12px">
+    <label>Notes</label>
+    <div style="margin-bottom:6px;font-size:11px;color:var(--text2);font-weight:600">Quick Tags</div>
+    <div style="margin-bottom:8px;display:flex;flex-wrap:wrap;gap:2px" id="tags-doc-notes"><span onclick="toggleNoteTag(this,'doc-notes')" style="display:inline-block;padding:4px 10px;margin:3px;border-radius:20px;font-size:11px;font-weight:600;cursor:pointer;border:1px solid var(--border);background:var(--bg3);color:var(--text2);transition:.15s">Original Available</span><span onclick="toggleNoteTag(this,'doc-notes')" style="display:inline-block;padding:4px 10px;margin:3px;border-radius:20px;font-size:11px;font-weight:600;cursor:pointer;border:1px solid var(--border);background:var(--bg3);color:var(--text2);transition:.15s">Photocopy Available</span><span onclick="toggleNoteTag(this,'doc-notes')" style="display:inline-block;padding:4px 10px;margin:3px;border-radius:20px;font-size:11px;font-weight:600;cursor:pointer;border:1px solid var(--border);background:var(--bg3);color:var(--text2);transition:.15s">Renewal Pending</span><span onclick="toggleNoteTag(this,'doc-notes')" style="display:inline-block;padding:4px 10px;margin:3px;border-radius:20px;font-size:11px;font-weight:600;cursor:pointer;border:1px solid var(--border);background:var(--bg3);color:var(--text2);transition:.15s">Lost / Missing</span><span onclick="toggleNoteTag(this,'doc-notes')" style="display:inline-block;padding:4px 10px;margin:3px;border-radius:20px;font-size:11px;font-weight:600;cursor:pointer;border:1px solid var(--border);background:var(--bg3);color:var(--text2);transition:.15s">Submitted to Office</span><span onclick="toggleNoteTag(this,'doc-notes')" style="display:inline-block;padding:4px 10px;margin:3px;border-radius:20px;font-size:11px;font-weight:600;cursor:pointer;border:1px solid var(--border);background:var(--bg3);color:var(--text2);transition:.15s">Safe at Home</span><span onclick="toggleNoteTag(this,'doc-notes')" style="display:inline-block;padding:4px 10px;margin:3px;border-radius:20px;font-size:11px;font-weight:600;cursor:pointer;border:1px solid var(--border);background:var(--bg3);color:var(--text2);transition:.15s">Kept in Locker</span><span onclick="toggleNoteTag(this,'doc-notes')" style="display:inline-block;padding:4px 10px;margin:3px;border-radius:20px;font-size:11px;font-weight:600;cursor:pointer;border:1px solid var(--border);background:var(--bg3);color:var(--text2);transition:.15s">Urgent Renewal</span></div>
+    <textarea id="doc-notes" placeholder="Type your note or tap a tag above..."></textarea>
+  </div>
+
+  <!-- OCR Section -->
+  <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:14px;margin-bottom:14px">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+      <div style="font-size:12px;font-weight:700;color:var(--pri)">🔍 Auto Extract Text (OCR)</div>
+      <button class="btn bo sm" onclick="runOCR()" id="ocr-btn">Extract Text</button>
+    </div>
+    <div id="ocr-result" style="display:none">
+      <div class="ocr-box" id="ocr-text"></div>
+      <div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap">
+        <button class="btn bo sm" onclick="copyOCR()">📋 Copy</button>
+        <button class="btn bo sm" onclick="fillFromOCR()">✨ Auto-fill Fields</button>
+      </div>
+    </div>
+    <div id="ocr-hint" style="font-size:11px;color:var(--text3)">Upload an image first, then extract text automatically using AI.</div>
+  </div>
+
+  <div style="display:flex;gap:8px;flex-wrap:wrap">
+    <button class="btn bp" onclick="saveDoc()">💾 Save Document</button>
+    <button class="btn bo" onclick="clearForm()">✕ Clear</button>
+  </div>
+  <div id="save-msg" style="margin-top:10px;font-size:12px;display:none"></div>
+</div>
+
+<!-- ══ EXPIRY PANEL ══ -->
+<div class="panel" id="panel-expiry">
+  <div class="sec">Expiry & Renewal Timeline</div>
+  <div id="expiry-timeline"></div>
+</div>
+
+<!-- ══ SETTINGS PANEL ══ -->
+<div class="panel" id="panel-settings">
+  <div class="set-card">
+    <div class="set-title">🔐 Security</div>
+    <div class="f" style="margin-bottom:10px"><label>Current Password</label>
+      <div class="inp-wrap" style="margin-bottom:0"><input type="password" id="cur-pass" placeholder="Enter current password"/><span class="eye" onclick="togglePwd('cur-pass',this)">👁</span></div>
+    </div>
+    <div class="f" style="margin-bottom:10px"><label>New Password</label><input type="password" id="new-pass" placeholder="New password"/></div>
+    <div class="f" style="margin-bottom:10px"><label>Confirm New Password</label><input type="password" id="conf-pass" placeholder="Re-enter new password"/></div>
+    <div style="color:var(--danger);font-size:11px;margin-bottom:8px" id="pwd-err"></div>
+    <button class="btn bp sm" onclick="changePwd()">🔑 Change Password</button>
+  </div>
+
+  <!-- PIN LOCK CARD -->
+  <div class="set-card">
+    <div class="set-title">&#x1F522; PIN Lock</div>
+    <div class="tog-row">
+      <div><div class="tl">Enable PIN Lock</div><div class="ts">Use a 4-digit PIN instead of password</div></div>
+      <label class="tog"><input type="checkbox" id="tog-pin" onchange="togglePinLock(this.checked)"/><span class="tog-sl"></span></label>
+    </div>
+    <div id="pin-settings-info" style="display:none;margin-top:12px">
+      <div style="background:var(--pri-glow);border:1px solid var(--border);border-radius:9px;padding:10px 13px;font-size:11px;color:var(--text2);margin-bottom:10px;line-height:1.7">
+        &#x1F512; PIN lock is active. Use your 4-digit PIN to unlock the vault quickly.
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button class="btn bp sm" onclick="openSetPin()">&#x270F;&#xFE0F; Change PIN</button>
+        <button class="btn bd sm" onclick="removePin()">&#x1F5D1;&#xFE0F; Remove PIN</button>
+      </div>
+    </div>
+    <div id="pin-settings-setup" style="display:none;margin-top:12px">
+      <button class="btn bp sm" onclick="openSetPin()">&#x1F522; Set Up PIN</button>
+    </div>
+  </div>
+
+  <!-- BACKUP CARD -->
+  <div class="set-card">
+    <div class="set-title">💾 Backup & Restore</div>
+
+    <!-- Info banner -->
+    <div style="background:var(--pri-glow);border:1px solid var(--border);border-radius:9px;padding:10px 13px;margin-bottom:14px;font-size:11px;color:var(--text2);line-height:1.7">
+      🔒 Backup files are <b style="color:var(--pri)">AES-256 encrypted</b> with your vault password.<br>
+      They <b style="color:var(--acc)">cannot be opened</b> in any other app or text editor.<br>
+      Only SecureVault + correct password can restore them.
+    </div>
+
+    <!-- Last backup info -->
+    <div style="background:var(--bg3);border-radius:9px;padding:10px 13px;margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
+      <div>
+        <div style="font-size:11px;font-weight:700;color:var(--text2)">Last Backup</div>
+        <div style="font-size:12px;color:var(--text);margin-top:3px" id="last-backup-time">Never</div>
+      </div>
+      <div>
+        <div style="font-size:11px;font-weight:700;color:var(--text2)">Documents</div>
+        <div style="font-size:12px;color:var(--pri);margin-top:3px" id="backup-doc-count">0</div>
+      </div>
+      <div>
+        <div style="font-size:11px;font-weight:700;color:var(--text2)">Auto Backup</div>
+        <div style="font-size:12px;margin-top:3px" id="auto-backup-status-label">Off</div>
+      </div>
+    </div>
+
+    <!-- Manual backup -->
+    <div style="margin-bottom:14px">
+      <div style="font-size:11px;font-weight:700;color:var(--text2);margin-bottom:8px;text-transform:uppercase;letter-spacing:.5px">Manual Backup</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button class="btn bp sm" onclick="doEncryptedBackup()">📥 Download Backup</button>
+        <button class="btn bo sm" onclick="document.getElementById('restore-inp').click()">📤 Restore from Backup</button>
+        <input type="file" id="restore-inp" accept=".svbak" style="display:none" onchange="doRestore(this)"/>
+      </div>
+    </div>
+
+    <!-- Auto backup -->
+    <div style="padding-top:12px;border-top:1px solid var(--border2)">
+      <div style="font-size:11px;font-weight:700;color:var(--text2);margin-bottom:10px;text-transform:uppercase;letter-spacing:.5px">Auto Backup</div>
+      <div class="tog-row">
+        <div><div class="tl">Enable Auto Backup</div><div class="ts">Automatically backup when documents change</div></div>
+        <label class="tog"><input type="checkbox" id="tog-autobackup" onchange="toggleAutoBackup(this.checked)"/><span class="tog-sl"></span></label>
+      </div>
+      <div id="autobackup-options" style="display:none;margin-top:12px">
+        <div class="f" style="margin-bottom:10px">
+          <label>Auto Backup Frequency</label>
+          <select id="autobackup-freq" onchange="saveAutoBackupSettings()">
+            <option value="everysave">Every time a document is saved</option>
+            <option value="daily">Daily (on app open)</option>
+            <option value="weekly">Weekly</option>
+          </select>
+        </div>
+        <div style="background:var(--bg3);border-radius:8px;padding:10px 13px;font-size:11px;color:var(--text2);line-height:1.7">
+          ℹ️ Auto backup downloads an encrypted <b>.svbak</b> file to your Downloads folder automatically.<br>Keep these files safe — they contain all your documents.
+        </div>
+        <button class="btn bp sm" style="margin-top:10px" onclick="doEncryptedBackup(true)">⚡ Backup Now</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- DATA MANAGEMENT -->
+  <div class="set-card">
+    <div class="set-title">🗑️ Data Management</div>
+    <button class="btn bd sm" onclick="clearAllData()">⚠️ Clear All Documents</button>
+  </div>
+
+  <div class="set-card">
+    <div class="set-title">ℹ️ App Info</div>
+    <div style="font-size:12px;color:var(--text2);line-height:1.8">
+      <b style="color:var(--text)">SecureVault v 1.26</b><br>
+      All data stored locally on your device.<br>
+      Backups encrypted with AES-256-GCM.<br>
+      No internet required (except OCR).
+    </div>
+    <div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--border2);display:flex;align-items:center;gap:10px">
+      <div style="width:36px;height:36px;background:linear-gradient(135deg,#00d4aa,#00a882);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0">✅</div>
+      <div>
+        <div style="font-size:11px;color:var(--text3);letter-spacing:.4px">DEVELOPED BY</div>
+        <div style="font-family:'Syne',sans-serif;font-size:14px;font-weight:800;color:var(--pri);margin-top:1px">GreenCheck Inc.</div>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+
+</div><!-- /main-app -->
+
+<!-- ══ EMAIL DOCUMENT MODAL ══ -->
+<div class="ov" id="ov-email" style="z-index:1001">
+  <div class="modal" style="max-width:480px">
+    <div class="mhdr"><span>✉️ Email Document</span><button class="xb" onclick="closeOv('ov-email')">✕</button></div>
+
+    <!-- Attach preview -->
+    <div class="email-attach-preview" id="email-attach-preview">
+      <div class="ea-icon" id="email-attach-icon">📄</div>
+      <div class="ea-info">
+        <div class="ea-name" id="email-attach-name">Document</div>
+        <div class="ea-note" id="email-attach-note">Document info will be included in the email</div>
+      </div>
+    </div>
+
+    <!-- Method tabs -->
+    <div class="email-method-tabs">
+      <button class="em-tab act" id="em-tab-app" onclick="switchEmailMethod('app')">📱 Mail App</button>
+      <button class="em-tab" id="em-tab-gmail" onclick="switchEmailMethod('gmail')">📧 Gmail</button>
+      <button class="em-tab" id="em-tab-copy" onclick="switchEmailMethod('copy')">📋 Copy Text</button>
+    </div>
+
+    <div id="email-form-area">
+      <label class="email-modal-label">To (Email Address)</label>
+      <input class="email-modal-input" type="email" id="email-to" placeholder="recipient@example.com"/>
+
+      <label class="email-modal-label">Subject</label>
+      <input class="email-modal-input" type="text" id="email-subject" placeholder="Document subject..."/>
+
+      <label class="email-modal-label">Message Body</label>
+      <textarea class="email-modal-textarea" id="email-body"></textarea>
+
+      <div id="email-attach-notice" style="background:rgba(79,142,247,.08);border:1px solid rgba(79,142,247,.2);border-radius:9px;padding:9px 13px;font-size:11px;color:#7ab0fa;margin-bottom:12px;display:none">
+        📎 <b>Note:</b> Due to browser security, file attachments open your mail app pre-filled. The file will be available to attach manually from your downloads.
+      </div>
+
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button class="btn be" style="flex:1" onclick="sendEmail()">✉️ Send Email</button>
+        <button class="btn bo" onclick="closeOv('ov-email')">Cancel</button>
+      </div>
+    </div>
+
+    <div id="email-copy-area" style="display:none">
+      <label class="email-modal-label">Copy this text to paste in any email app</label>
+      <textarea class="email-modal-textarea" id="email-copy-text" readonly style="cursor:pointer" onclick="this.select()"></textarea>
+      <div style="display:flex;gap:8px">
+        <button class="btn be" style="flex:1" onclick="copyEmailText()">📋 Copy to Clipboard</button>
+        <button class="btn bo" onclick="closeOv('ov-email')">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ VIEW DOCUMENT MODAL ══ -->
+<div class="ov" id="ov-view">
+  <div class="modal">
+    <div class="mhdr"><span id="view-title">Document</span><button class="xb" onclick="closeOv('ov-view')">✕</button></div>
+    <div id="view-content"></div>
+  </div>
+</div>
+
+<!-- ══ CONFIRM MODAL ══ -->
+<div class="ov" id="ov-confirm">
+  <div class="modal" style="max-width:340px">
+    <div class="mhdr"><span>⚠️ Confirm</span><button class="xb" onclick="closeOv('ov-confirm')">✕</button></div>
+    <p style="font-size:13px;color:var(--text2);margin-bottom:18px" id="confirm-msg"></p>
+    <div style="display:flex;gap:8px">
+      <button class="btn bd" id="confirm-yes" style="flex:1">Yes, Delete</button>
+      <button class="btn bo" onclick="closeOv('ov-confirm')" style="flex:1">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ EDIT MODAL ══ -->
+<div class="ov" id="ov-edit" style="z-index:1002">
+  <div class="modal">
+    <div class="mhdr"><span>✏️ Edit Document</span><button class="xb" onclick="closeOv('ov-edit')">✕</button></div>
+    <!-- File re-upload zone -->
+    <div style="margin-bottom:14px">
+      <div style="font-size:11px;color:var(--text2);font-weight:600;margin-bottom:6px">Replace File (optional)</div>
+      <div class="upload-zone" id="edit-upload-zone" style="padding:16px;cursor:default">
+        <div class="uz-icon" style="font-size:24px" id="edit-file-icon">📂</div>
+        <div class="uz-title" style="font-size:12px" id="edit-file-label">Choose file to replace</div>
+        <div class="uz-sub" id="edit-file-sub">Images & PDF supported</div>
+        <div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:10px">
+          <label style="cursor:pointer;background:linear-gradient(135deg,var(--pri),var(--pri-dark));color:#0f1923;padding:7px 14px;border-radius:9px;font-size:11px;font-weight:700;display:inline-flex;align-items:center;gap:5px">
+            <input type="file" id="edit-file-inp" accept="image/*" style="display:none" onchange="handleEditFile(this.files)"/>
+            📷 Camera / Gallery
+          </label>
+          <label style="cursor:pointer;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:7px 14px;border-radius:9px;font-size:11px;font-weight:700;display:inline-flex;align-items:center;gap:5px">
+            <input type="file" id="edit-file-inp-docs" accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.webp,.heic,.gif,application/pdf,image/*" style="display:none" onchange="handleEditFile(this.files)"/>
+            📄 Files / Documents
+          </label>
+        </div>
+      </div>
+    </div>
+    <div class="row">
+      <div class="f"><label>Document Name *</label><input type="text" id="edit-name" placeholder="e.g. Aadhaar Card"/></div>
+      <div class="f"><label>Category</label>
+        <select id="edit-cat">
+          <option>Aadhar Card</option>
+          <option>PAN Card</option>
+          <option>ID / Passport</option>
+          <option>Insurance</option>
+          <option>Medical</option>
+          <option>Legal</option>
+          <option>Financial</option>
+          <option>Vehicle</option>
+          <option>Property</option>
+          <option>Education</option>
+          <option>Other</option>
+        </select>
+      </div>
+    </div>
+    <div class="row">
+      <div class="f"><label>Issue Date</label><input type="date" id="edit-issue"/></div>
+      <div class="f"><label>Expiry / Renewal Date</label><input type="date" id="edit-expiry"/></div>
+    </div>
+    <div class="row">
+      <div class="f"><label>Document Number</label><input type="text" id="edit-number" placeholder="ID / Reference number"/></div>
+      <div class="f"><label>Issued By</label><input type="text" id="edit-issuer" placeholder="e.g. Government of India"/></div>
+    </div>
+    <div class="f" style="margin-bottom:14px">
+      <label>Notes</label>
+      <div style="margin-bottom:6px;font-size:11px;color:var(--text2);font-weight:600">Quick Tags</div>
+    <div style="margin-bottom:8px;display:flex;flex-wrap:wrap;gap:2px" id="tags-edit-notes"><span onclick="toggleNoteTag(this,'edit-notes')" style="display:inline-block;padding:4px 10px;margin:3px;border-radius:20px;font-size:11px;font-weight:600;cursor:pointer;border:1px solid var(--border);background:var(--bg3);color:var(--text2);transition:.15s">Original Available</span><span onclick="toggleNoteTag(this,'edit-notes')" style="display:inline-block;padding:4px 10px;margin:3px;border-radius:20px;font-size:11px;font-weight:600;cursor:pointer;border:1px solid var(--border);background:var(--bg3);color:var(--text2);transition:.15s">Photocopy Available</span><span onclick="toggleNoteTag(this,'edit-notes')" style="display:inline-block;padding:4px 10px;margin:3px;border-radius:20px;font-size:11px;font-weight:600;cursor:pointer;border:1px solid var(--border);background:var(--bg3);color:var(--text2);transition:.15s">Renewal Pending</span><span onclick="toggleNoteTag(this,'edit-notes')" style="display:inline-block;padding:4px 10px;margin:3px;border-radius:20px;font-size:11px;font-weight:600;cursor:pointer;border:1px solid var(--border);background:var(--bg3);color:var(--text2);transition:.15s">Lost / Missing</span><span onclick="toggleNoteTag(this,'edit-notes')" style="display:inline-block;padding:4px 10px;margin:3px;border-radius:20px;font-size:11px;font-weight:600;cursor:pointer;border:1px solid var(--border);background:var(--bg3);color:var(--text2);transition:.15s">Submitted to Office</span><span onclick="toggleNoteTag(this,'edit-notes')" style="display:inline-block;padding:4px 10px;margin:3px;border-radius:20px;font-size:11px;font-weight:600;cursor:pointer;border:1px solid var(--border);background:var(--bg3);color:var(--text2);transition:.15s">Safe at Home</span><span onclick="toggleNoteTag(this,'edit-notes')" style="display:inline-block;padding:4px 10px;margin:3px;border-radius:20px;font-size:11px;font-weight:600;cursor:pointer;border:1px solid var(--border);background:var(--bg3);color:var(--text2);transition:.15s">Kept in Locker</span><span onclick="toggleNoteTag(this,'edit-notes')" style="display:inline-block;padding:4px 10px;margin:3px;border-radius:20px;font-size:11px;font-weight:600;cursor:pointer;border:1px solid var(--border);background:var(--bg3);color:var(--text2);transition:.15s">Urgent Renewal</span></div>
+      <textarea id="edit-notes" placeholder="Type your note or tap a tag above..."></textarea>
+    </div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <button class="btn bp" onclick="saveEditDoc()">💾 Save Changes</button>
+      <button class="btn bo" onclick="closeOv('ov-edit')">Cancel</button>
+    </div>
+    <div id="edit-msg" style="margin-top:8px;font-size:12px;display:none"></div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ══ STORAGE KEYS ══
+const LS_DOCS = 'sv_docs';
+const LS_USER = 'sv_user';
+const LS_PASS = 'sv_pass';
+const LS_SESSION = 'sv_sess';
+
+// ══ STATE ══
+let docs = [];
+let currentFile = null;
+let currentFilter = 'all';
+let currentView = 'grid';
+let pendingDel = null;
+
+// ══ INIT ══
+window.addEventListener('load', function(){
+  docs = loadDocs();
+  const hasUser = localStorage.getItem(LS_USER);
+  if(hasUser){
+    document.getElementById('first-time-hint').style.display='none';
+  }
+  const sess = sessionStorage.getItem(LS_SESSION);
+  if(sess === '1' && hasUser){
+    showApp();
+  } else if(hasUser) {
+    // Check if PIN enabled — show PIN screen instead of password screen
+    const pinEnabled = localStorage.getItem(LS_PIN_ENABLED)==='1';
+    const pinHash = localStorage.getItem(LS_PIN);
+    if(pinEnabled && pinHash){
+      showPinScreen();
+    }
+  }
+});
+
+function loadDocs(){
+  try{ return JSON.parse(localStorage.getItem(LS_DOCS)||'[]'); }catch(e){ return []; }
+}
+function saveDocs(){
+  localStorage.setItem(LS_DOCS, JSON.stringify(docs));
+}
+
+// ══ AUTH ══
+async function sha256(str){
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(str));
+  return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
+}
+
+async function doLogin(){
+  const u = document.getElementById('login-user').value.trim();
+  const p = document.getElementById('login-pass').value;
+  const err = document.getElementById('login-err');
+  if(!u||!p){ err.textContent='Enter username and password.'; return; }
+  const storedU = localStorage.getItem(LS_USER);
+  const storedP = localStorage.getItem(LS_PASS);
+  if(!storedU){ err.textContent='No account found. Set up your password first.'; return; }
+  const hu = await sha256(u), hp = await sha256(p);
+  if(hu===storedU && hp===storedP){
+    sessionStorage.setItem(LS_SESSION,'1');
+    showApp();
+  } else {
+    err.textContent='❌ Incorrect username or password.';
+    document.getElementById('login-pass').value='';
+  }
+}
+
+function showApp(){
+  document.getElementById('login-screen').classList.add('hide');
+  document.getElementById('main-app').style.display='block';
+  renderHome();
+  updateBackupUI();
+  checkAutoBackup();
+}
+
+function doLock(){
+  sessionStorage.removeItem(LS_SESSION);
+  document.getElementById('login-screen').classList.remove('hide');
+  document.getElementById('main-app').style.display='none';
+  document.getElementById('login-pass').value='';
+  document.getElementById('login-err').textContent='';
+  currentFile=null;
+}
+
+function showSetupModal(){ openOv('ov-setup'); }
+
+function showForgotModal(){
+  document.getElementById('reset-confirm-text').value='';
+  document.getElementById('forgot-err').textContent='';
+  openOv('ov-forgot');
+}
+
+function doReset(){
+  const val = document.getElementById('reset-confirm-text').value.trim();
+  const err = document.getElementById('forgot-err');
+  if(val !== 'RESET VAULT'){
+    err.textContent = '❌ Type exactly: RESET VAULT';
+    return;
+  }
+  // Clear everything
+  localStorage.removeItem(LS_DOCS);
+  localStorage.removeItem(LS_USER);
+  localStorage.removeItem(LS_PASS);
+  sessionStorage.removeItem(LS_SESSION);
+  docs = [];
+  closeOv('ov-forgot');
+  document.getElementById('login-user').value='';
+  document.getElementById('login-pass').value='';
+  document.getElementById('login-err').textContent='';
+  document.getElementById('first-time-hint').style.display='block';
+  showToast('🔓 Vault reset. Set a new password.','ok');
+}
+
+async function saveSetup(){
+  const u=document.getElementById('setup-user').value.trim();
+  const p=document.getElementById('setup-pass').value;
+  const c=document.getElementById('setup-conf').value;
+  const err=document.getElementById('setup-err');
+  if(!u){ err.textContent='Enter a username.'; return; }
+  if(p.length<4){ err.textContent='Password must be at least 4 characters.'; return; }
+  if(p!==c){ err.textContent='Passwords do not match.'; return; }
+  localStorage.setItem(LS_USER, await sha256(u));
+  localStorage.setItem(LS_PASS, await sha256(p));
+  closeOv('ov-setup');
+  document.getElementById('first-time-hint').style.display='none';
+  document.getElementById('login-sub-text').textContent='YOUR PRIVATE DOCUMENT SAFE';
+  document.getElementById('topbar-user-label').textContent=u+"'s Vault";
+  // Pre-fill login fields and auto-login
+  document.getElementById('login-user').value=u;
+  document.getElementById('login-pass').value=p;
+  sessionStorage.setItem(LS_SESSION,'1');
+  showApp();
+  showToast('✅ Password set! Welcome to SecureVault.','ok');
+}
+
+function togglePwd(id,el){
+  const inp=document.getElementById(id);
+  if(inp.type==='password'){ inp.type='text'; el.textContent='🙈'; }
+  else { inp.type='password'; el.textContent='👁'; }
+}
+
+// ══ PANEL NAV ══
+function showPanel(id,btn){
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('act'));
+  document.querySelectorAll('.nav button').forEach(b=>b.classList.remove('act'));
+  document.getElementById('panel-'+id).classList.add('act');
+  if(btn) btn.classList.add('act');
+  if(id==='home') renderHome();
+  if(id==='docs') renderDocs();
+  if(id==='expiry') renderExpiry();
+  if(id==='settings') updateBackupUI();
+}
+
+// ══ FILE HANDLING ══
+function handleFiles(files){
+  if(!files||!files.length) return;
+  const file = files[0];
+  currentFile = file;
+  const previewArea = document.getElementById('preview-area');
+  const thumbs = document.getElementById('preview-thumbs');
+  thumbs.innerHTML='';
+  previewArea.style.display='block';
+
+  if(file.type.startsWith('image/')){
+    const reader = new FileReader();
+    reader.onload=function(e){
+      thumbs.innerHTML=`<div style="position:relative"><img src="${e.target.result}" style="height:120px;border-radius:9px;border:1px solid var(--border);object-fit:cover"/><div style="font-size:10px;color:var(--text2);margin-top:4px">${file.name}</div></div>`;
+      // Pre-fill name
+      if(!document.getElementById('doc-name').value){
+        document.getElementById('doc-name').value = file.name.replace(/\.[^.]+$/,'');
+      }
+    };
+    reader.readAsDataURL(file);
+  } else if(file.type==='application/pdf'){
+    thumbs.innerHTML=`<div style="background:var(--bg3);border-radius:9px;padding:20px 28px;border:1px solid var(--border);text-align:center"><div style="font-size:32px">📄</div><div style="font-size:11px;color:var(--text2);margin-top:4px">${file.name}</div></div>`;
+    if(!document.getElementById('doc-name').value){
+      document.getElementById('doc-name').value = file.name.replace(/\.[^.]+$/,'');
+    }
+  }
+
+  document.getElementById('ocr-result').style.display='none';
+  document.getElementById('ocr-hint').style.display='block';
+  document.getElementById('ocr-hint').textContent='File ready. Click "Extract Text" to run OCR.';
+}
+
+// Drag & drop
+const uz = document.getElementById('upload-zone');
+uz.addEventListener('dragover',e=>{e.preventDefault();uz.classList.add('drag')});
+uz.addEventListener('dragleave',()=>uz.classList.remove('drag'));
+uz.addEventListener('drop',e=>{e.preventDefault();uz.classList.remove('drag');handleFiles(e.dataTransfer.files)});
+document.getElementById('file-inp-docs').addEventListener('change',function(){handleFiles(this.files)});
+
+// ══ OCR via Anthropic API ══
+async function runOCR(){
+  if(!currentFile){ showToast('Upload a file first','err'); return; }
+  const btn = document.getElementById('ocr-btn');
+  const result = document.getElementById('ocr-result');
+  const hint = document.getElementById('ocr-hint');
+  btn.disabled=true; btn.textContent='⏳ Extracting...';
+  hint.style.display='none';
+  result.style.display='block';
+  document.getElementById('ocr-text').innerHTML='<div class="ocr-loading"><span class="spin">⏳</span> Reading document with AI...</div>';
+
+  try {
+    const b64 = await fileToBase64(currentFile);
+    const isImg = currentFile.type.startsWith('image/');
+    let messages;
+    if(isImg){
+      messages=[{role:'user',content:[
+        {type:'image',source:{type:'base64',media_type:currentFile.type,data:b64}},
+        {type:'text',text:'Extract ALL visible text from this document image. Return ONLY the extracted text, nothing else. If you see dates, ID numbers, names, addresses — extract them all accurately.'}
+      ]}];
+    } else {
+      messages=[{role:'user',content:[
+        {type:'document',source:{type:'base64',media_type:'application/pdf',data:b64}},
+        {type:'text',text:'Extract ALL visible text from this PDF document. Return ONLY the extracted text, nothing else.'}
+      ]}];
+    }
+    const res = await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        model:'claude-sonnet-4-20250514',
+        max_tokens:1000,
+        messages
+      })
+    });
+    const data = await res.json();
+    const text = data.content?.map(c=>c.text||'').join('\n').trim() || 'No text found.';
+    document.getElementById('ocr-text').textContent = text;
+  } catch(e){
+    document.getElementById('ocr-text').textContent = 'OCR failed: '+e.message;
+  }
+  btn.disabled=false; btn.textContent='Extract Text';
+}
+
+function fileToBase64(file){
+  return new Promise((res,rej)=>{
+    const r=new FileReader();
+    r.onload=()=>res(r.result.split(',')[1]);
+    r.onerror=()=>rej(new Error('Read failed'));
+    r.readAsDataURL(file);
+  });
+}
+
+function copyOCR(){
+  const t=document.getElementById('ocr-text').textContent;
+  navigator.clipboard.writeText(t).then(()=>showToast('📋 Copied!','ok'));
+}
+
+function fillFromOCR(){
+  const text = document.getElementById('ocr-text').textContent;
+  // Try to find date patterns
+  const datePattern = /(\d{1,2}[\/\-\.]\d{1,2}[\/\-\.]\d{2,4}|\d{4}[\/\-\.]\d{1,2}[\/\-\.]\d{1,2})/g;
+  const dates = text.match(datePattern);
+  if(dates && dates.length>0){
+    // Try to parse and fill expiry
+    const d=parseDate(dates[dates.length-1]);
+    if(d) document.getElementById('doc-expiry').value=d;
+  }
+  // Try doc number patterns
+  const numPat = /[A-Z]{1,3}[\s\-]?\d{6,12}/g;
+  const nums = text.match(numPat);
+  if(nums && !document.getElementById('doc-number').value){
+    document.getElementById('doc-number').value=nums[0];
+  }
+  showToast('✨ Fields auto-filled!','ok');
+}
+
+function parseDate(str){
+  try{
+    const parts = str.split(/[\/\-\.]/);
+    if(parts.length===3){
+      let y=parts[2],m=parts[1],d=parts[0];
+      if(y.length===2) y='20'+y;
+      if(parseInt(y)>2000 && parseInt(y)<2100){
+        return `${y}-${m.padStart(2,'0')}-${d.padStart(2,'0')}`;
+      }
+      // Try yyyy-mm-dd
+      y=parts[0]; m=parts[1]; d=parts[2];
+      if(parseInt(y)>2000) return `${y}-${m.padStart(2,'0')}-${d.padStart(2,'0')}`;
+    }
+  }catch(e){}
+  return null;
+}
+
+// ══ SAVE DOCUMENT ══
+async function saveDoc(){
+  const name = document.getElementById('doc-name').value.trim();
+  if(!name){ showToast('Enter document name','err'); return; }
+  if(!currentFile){ showToast('Upload a file first','err'); return; }
+
+  const btn = document.querySelector('#panel-add .btn.bp');
+  btn.textContent='⏳ Saving...'; btn.disabled=true;
+
+  let fileData='', fileType='', fileName='';
+  try{
+    if(currentFile){
+      fileType = currentFile.type;
+      fileName = currentFile.name;
+      fileData = await fileToBase64(currentFile);
+    }
+  }catch(e){ showToast('File read error','err'); btn.textContent='💾 Save Document'; btn.disabled=false; return; }
+
+  const doc = {
+    id: Date.now().toString(),
+    name,
+    category: document.getElementById('doc-cat').value,
+    issue: document.getElementById('doc-issue').value,
+    expiry: document.getElementById('doc-expiry').value,
+    number: document.getElementById('doc-number').value,
+    issuer: document.getElementById('doc-issuer').value,
+    notes: document.getElementById('doc-notes').value,
+    ocrText: document.getElementById('ocr-text').textContent||'',
+    fileData, fileType, fileName,
+    added: new Date().toISOString()
+  };
+
+  docs.unshift(doc);
+  try{ saveDocs(); }
+  catch(e){ showToast('⚠️ Storage full! Delete old docs.','err'); docs.shift(); btn.textContent='💾 Save Document'; btn.disabled=false; return; }
+
+  showToast('✅ Document saved!','ok');
+  clearForm();
+  btn.textContent='💾 Save Document'; btn.disabled=false;
+  autoBackupOnSave();
+  updateBackupUI();
+  showPanel('docs', document.querySelectorAll('.nav button')[1]);
+}
+
+function clearForm(){
+  ['doc-name','doc-issue','doc-expiry','doc-number','doc-issuer','doc-notes'].forEach(id=>document.getElementById(id).value='');
+  resetNoteTags('tags-doc-notes');
+  document.getElementById('preview-area').style.display='none';
+  document.getElementById('preview-thumbs').innerHTML='';
+  document.getElementById('ocr-result').style.display='none';
+  document.getElementById('ocr-hint').style.display='block';
+  document.getElementById('ocr-hint').textContent='Upload an image first, then extract text automatically using AI.';
+  document.getElementById('file-inp').value='';
+  currentFile=null;
+}
+
+// ══ RENDER DOCS ══
+function setFilter(f,el){
+  currentFilter=f;
+  document.querySelectorAll('.ftab').forEach(t=>t.classList.remove('act'));
+  el.classList.add('act');
+  renderDocs();
+}
+
+function setView(v){
+  currentView=v;
+  document.getElementById('vt-grid').classList.toggle('act',v==='grid');
+  document.getElementById('vt-list').classList.toggle('act',v==='list');
+  renderDocs();
+}
+
+function getDaysToExpiry(dateStr){
+  if(!dateStr) return null;
+  const exp=new Date(dateStr), now=new Date();
+  now.setHours(0,0,0,0); exp.setHours(0,0,0,0);
+  return Math.round((exp-now)/(1000*60*60*24));
+}
+
+function expiryStatus(dateStr){
+  const d=getDaysToExpiry(dateStr);
+  if(d===null) return 'none';
+  if(d<0) return 'expired';
+  if(d<=30) return 'expiring';
+  return 'ok';
+}
+
+function expiryLabel(dateStr){
+  const d=getDaysToExpiry(dateStr);
+  if(d===null) return {text:'No Expiry',cls:'exp-none'};
+  if(d<0) return {text:`Expired ${Math.abs(d)}d ago`,cls:'exp-bad'};
+  if(d===0) return {text:'Expires Today!',cls:'exp-bad'};
+  if(d<=30) return {text:`Expires in ${d}d`,cls:'exp-warn'};
+  const dt=new Date(dateStr);
+  return {text:dt.toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'}),cls:'exp-ok'};
+}
+
+function fileIcon(type){
+  if(!type) return '📄';
+  if(type.startsWith('image/')) return '🖼️';
+  if(type==='application/pdf') return '📑';
+  return '📄';
+}
+
+function catIcon(cat){
+  const icons={'Aadhar Card':'🪪','PAN Card':'💳','ID / Passport':'🛂','Insurance':'🛡️','Medical':'🏥','Legal':'⚖️','Financial':'💰','Vehicle':'🚗','Property':'🏠','Education':'🎓','Other':'📄'};
+  return icons[cat]||'📄';
+}
+
+function filterDocs(){
+  let q=document.getElementById('search-inp')?document.getElementById('search-inp').value.toLowerCase():'';
+  let cat=document.getElementById('cat-filter')?document.getElementById('cat-filter').value:'';
+  return docs.filter(d=>{
+    const matchQ=!q||(d.name+d.category+d.number+d.issuer+d.notes).toLowerCase().includes(q);
+    const matchCat=!cat||d.category===cat;
+    const s=expiryStatus(d.expiry);
+    const matchF=currentFilter==='all'||
+      (currentFilter==='ok'&&s==='ok')||
+      (currentFilter==='expiring'&&s==='expiring')||
+      (currentFilter==='expired'&&s==='expired')||
+      (currentFilter==='noexp'&&s==='none');
+    return matchQ&&matchCat&&matchF;
+  });
+}
+
+function renderDocs(){
+  const filtered=filterDocs();
+  const container=document.getElementById('docs-container');
+  if(!filtered.length){
+    container.innerHTML=`<div class="empty"><div class="empty-icon">📭</div><div class="empty-title">No documents found</div><div style="font-size:12px;color:var(--text3);margin-top:4px">Add your first document</div></div>`;
+    return;
+  }
+  if(currentView==='grid'){
+    container.innerHTML=`<div class="doc-grid">${filtered.map(docCard).join('')}</div>`;
+  } else {
+    container.innerHTML=`<div class="doc-list">${filtered.map(docListItem).join('')}</div>`;
+  }
+}
+
+function docCard(doc){
+  const lbl=expiryLabel(doc.expiry);
+  const s=expiryStatus(doc.expiry);
+  const cls=s==='expired'?'expired':s==='expiring'?'expiring':'';
+  let thumb='';
+  if(doc.fileData && doc.fileType && doc.fileType.startsWith('image/')){
+    thumb=`<div class="doc-thumb"><img src="data:${doc.fileType};base64,${doc.fileData}" alt="${doc.name}"/><div class="doc-type-badge">${doc.fileType.split('/')[1].toUpperCase()}</div></div>`;
+  } else if(doc.fileType==='application/pdf'){
+    thumb=`<div class="doc-thumb" style="font-size:44px">📑<div class="doc-type-badge">PDF</div></div>`;
+  } else {
+    thumb=`<div class="doc-thumb">${catIcon(doc.category)}</div>`;
+  }
+  return `<div class="doc-card ${cls}" onclick="viewDoc('${doc.id}')">
+    ${thumb}
+    <div class="doc-info">
+      <div class="doc-name" title="${doc.name}">${doc.name}</div>
+      <div class="doc-cat">${catIcon(doc.category)} ${doc.category||'Other'}</div>
+      <span class="doc-exp ${lbl.cls}">${lbl.text}</span>
+      <div class="doc-actions">
+        <button class="btn bo sm" onclick="event.stopPropagation();viewDoc('${doc.id}')">👁</button>
+        <button class="btn bw sm" onclick="event.stopPropagation();shareWhatsApp('${doc.id}')">📤</button>
+        <button class="btn be sm" onclick="event.stopPropagation();openEmailDoc('${doc.id}')">✉️</button>
+        <button class="btn bd sm" onclick="event.stopPropagation();askDelete('${doc.id}')">🗑</button>
+      </div>
+    </div>
+  </div>`;
+}
+
+function docListItem(doc){
+  const lbl=expiryLabel(doc.expiry);
+  return `<div class="doc-list-item" onclick="viewDoc('${doc.id}')">
+    <div class="dli-icon">${fileIcon(doc.fileType)}</div>
+    <div class="dli-info">
+      <div class="dli-name">${doc.name}</div>
+      <div class="dli-meta">${catIcon(doc.category)} ${doc.category||'Other'}${doc.number?' · '+doc.number:''}</div>
+    </div>
+    <div class="dli-right">
+      <span class="doc-exp ${lbl.cls}">${lbl.text}</span>
+      <button class="btn bd sm" onclick="event.stopPropagation();askDelete('${doc.id}')">🗑</button>
+    </div>
+  </div>`;
+}
+
+// ══ VIEW DOC ══
+function viewDoc(id){
+  const doc=docs.find(d=>d.id===id);
+  if(!doc) return;
+  document.getElementById('view-title').textContent=doc.name;
+  const lbl=expiryLabel(doc.expiry);
+  let fileHtml='';
+  if(doc.fileData && doc.fileType){
+    if(doc.fileType.startsWith('image/')){
+      fileHtml=`<img class="view-img" src="data:${doc.fileType};base64,${doc.fileData}" alt="${doc.name}"/>`;
+    } else if(doc.fileType==='application/pdf'){
+      fileHtml=`<div style="text-align:center;padding:20px;background:var(--bg3);border-radius:9px;margin-bottom:12px">
+        <div style="font-size:48px">📑</div>
+        <div style="font-size:12px;color:var(--text2);margin-top:6px">${doc.fileName}</div>
+        <div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:10px">
+          <button class="btn bp sm" onclick="openPdfDoc('${doc.id}')">👁️ Open PDF</button>
+          <button class="btn bo sm" onclick="downloadDoc('${doc.id}')">⬇️ Download</button>
+        </div>
+        <div style="font-size:10px;color:var(--text3);margin-top:8px">Opens in your phone's PDF viewer or browser</div>
+      </div>`;
+    }
+  }
+  document.getElementById('view-content').innerHTML=`
+    ${fileHtml}
+    <div class="meta-grid">
+      <span class="ml">Category</span><span class="mv">${catIcon(doc.category)} ${doc.category||'-'}</span>
+      ${doc.number?`<span class="ml">Doc Number</span><span class="mv" style="font-family:'DM Mono',monospace">${doc.number}</span>`:''}
+      ${doc.issuer?`<span class="ml">Issued By</span><span class="mv">${doc.issuer}</span>`:''}
+      ${doc.issue?`<span class="ml">Issue Date</span><span class="mv">${formatDate(doc.issue)}</span>`:''}
+      <span class="ml">Expiry</span><span class="mv"><span class="doc-exp ${lbl.cls}">${lbl.text}</span></span>
+      ${doc.notes?`<span class="ml">Notes</span><span class="mv">${doc.notes}</span>`:''}
+    </div>
+    ${doc.ocrText?`<div class="sec" style="margin-top:12px">Extracted Text</div><div class="ocr-box" style="max-height:140px">${doc.ocrText}</div>`:''}
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:14px">
+      ${doc.fileData?`<button class="btn bo sm" onclick="downloadDoc('${doc.id}')">⬇️ Download</button>`:''}
+      <button class="btn bp sm" onclick="closeOv('ov-view');openEditDoc('${doc.id}')">✏️ Edit</button>
+      <button class="btn bw sm" onclick="shareWhatsApp('${doc.id}')">📤 Share</button>
+      <button class="btn be sm" onclick="openEmailDoc('${doc.id}')">✉️ Email</button>
+      <button class="btn bd sm" onclick="closeOv('ov-view');askDelete('${doc.id}')">🗑️ Delete</button>
+    </div>`;
+  openOv('ov-view');
+}
+
+function downloadDoc(id){
+  const doc=docs.find(d=>d.id===id);
+  if(!doc||!doc.fileData) return;
+  const a=document.createElement('a');
+  a.href=`data:${doc.fileType};base64,${doc.fileData}`;
+  a.download=doc.fileName||doc.name;
+  a.click();
+}
+
+function openPdfDoc(id){
+  const doc=docs.find(d=>d.id===id);
+  if(!doc||!doc.fileData) return;
+  try{
+    // base64 → Blob → Object URL → open in browser/PDF viewer
+    const byteStr=atob(doc.fileData);
+    const arr=new Uint8Array(byteStr.length);
+    for(let i=0;i<byteStr.length;i++) arr[i]=byteStr.charCodeAt(i);
+    const blob=new Blob([arr],{type:'application/pdf'});
+    const url=URL.createObjectURL(blob);
+    // Open in new tab — mobile Chrome/Safari will open native PDF viewer
+    window.open(url,'_blank');
+    // Revoke after delay to free memory
+    setTimeout(()=>URL.revokeObjectURL(url), 30000);
+  } catch(e){
+    // Fallback: data URI open
+    window.open('data:application/pdf;base64,'+doc.fileData,'_blank');
+  }
+}
+
+async function shareWhatsApp(id){
+  const doc=docs.find(d=>d.id===id);
+  if(!doc) return;
+  const lbl=expiryLabel(doc.expiry);
+  const text=`📄 *${doc.name}*\n🏷️ ${doc.category}\n${doc.number?'🔢 '+doc.number+'\n':''}${doc.expiry?'📅 Expiry: '+lbl.text+'\n':''}${doc.issuer?'🏛️ '+doc.issuer:''}\n\nShared via SecureVault`;
+
+  if(doc.fileData){
+    try{
+      // base64 → Blob → File
+      const byteStr = atob(doc.fileData);
+      const arr = new Uint8Array(byteStr.length);
+      for(let i=0;i<byteStr.length;i++) arr[i]=byteStr.charCodeAt(i);
+      const mimeType = doc.fileType || 'application/octet-stream';
+      const blob = new Blob([arr], {type: mimeType});
+
+      // Proper extension detection
+      let ext = '';
+      if(doc.fileName && doc.fileName.includes('.')) {
+        ext = ''; // fileName already has extension
+      } else if(mimeType === 'application/pdf') ext = '.pdf';
+      else if(mimeType.startsWith('image/jpeg') || mimeType.startsWith('image/jpg')) ext = '.jpg';
+      else if(mimeType.startsWith('image/png')) ext = '.png';
+      else if(mimeType.startsWith('image/')) ext = '.jpg';
+      else if(mimeType.includes('word')) ext = '.docx';
+
+      const fileName = doc.fileName || (doc.name.replace(/[^a-zA-Z0-9_\-]/g,'_') + ext);
+      const file = new File([blob], fileName, {type: mimeType, lastModified: Date.now()});
+
+      // Web Share API with file (mobile Chrome/Safari/Firefox)
+      if(navigator.canShare && navigator.canShare({files:[file]})){
+        await navigator.share({files:[file], title: doc.name, text: text});
+        return;
+      }
+
+      // Web Share API without file (text only)
+      if(navigator.share){
+        // First download the file so user has it
+        const dlUrl = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = dlUrl;
+        a.download = fileName;
+        a.click();
+        setTimeout(()=>URL.revokeObjectURL(dlUrl), 1000);
+        showToast('📥 File downloaded! Now sharing info...','ok');
+        setTimeout(async()=>{
+          try{ await navigator.share({title: doc.name, text: text}); } catch(e){}
+        }, 800);
+        return;
+      }
+
+      // Desktop fallback: just download
+      const dlUrl = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = dlUrl;
+      a.download = fileName;
+      a.click();
+      setTimeout(()=>URL.revokeObjectURL(dlUrl), 1000);
+      showToast('📥 File downloaded!','ok');
+      return;
+
+    } catch(e){
+      if(e.name==='AbortError') return;
+      console.warn('Share failed:', e);
+    }
+  }
+
+  // No file — text only share or WhatsApp web
+  if(navigator.share){
+    try{ await navigator.share({title: doc.name, text: text}); return; }
+    catch(e){ if(e.name==='AbortError') return; }
+  }
+  window.open('https://wa.me/?text='+encodeURIComponent(text));
+}
+
+
+// ══ EMAIL DOCUMENT ══
+let emailDocId = null;
+let emailMethod = 'app';
+
+function openEmailDoc(id){
+  const doc = docs.find(d=>d.id===id);
+  if(!doc) return;
+  emailDocId = id;
+  emailMethod = 'app';
+
+  // Set attach preview
+  const icon = doc.fileType && doc.fileType.startsWith('image/') ? '🖼️' :
+               doc.fileType === 'application/pdf' ? '📑' : '📄';
+  document.getElementById('email-attach-icon').textContent = icon;
+  document.getElementById('email-attach-name').textContent = doc.name;
+  document.getElementById('email-attach-note').textContent =
+    doc.fileData ? (doc.fileName || doc.name) + ' · Tap Send to open mail app' : 'Document info will be included';
+
+  // Pre-fill subject & body
+  document.getElementById('email-to').value = '';
+  document.getElementById('email-subject').value = 'Document: ' + doc.name;
+  document.getElementById('email-body').value = buildEmailBody(doc);
+
+  // Reset tabs
+  switchEmailMethod('app');
+
+  // Show/hide attach notice based on file presence
+  document.getElementById('email-attach-notice').style.display = doc.fileData ? 'block' : 'none';
+
+  openOv('ov-email');
+}
+
+function buildEmailBody(doc){
+  const lbl = expiryLabel(doc.expiry);
+  let body = 'Hello,\n\nPlease find the document details below:\n\n';
+  body += '\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\n';
+  body += '\ud83d\udcc4 Document: ' + doc.name + '\n';
+  if(doc.category) body += '\ud83c\udff7\ufe0f Category: ' + doc.category + '\n';
+  if(doc.number)   body += '\ud83d\udd22 Doc Number: ' + doc.number + '\n';
+  if(doc.issuer)   body += '\ud83c\udfd9\ufe0f Issued By: ' + doc.issuer + '\n';
+  if(doc.issue)    body += '\ud83d\udcc5 Issue Date: ' + formatDate(doc.issue) + '\n';
+  if(doc.expiry)   body += '\u23f3 Expiry: ' + lbl.text + '\n';
+  if(doc.notes)    body += '\n\ud83d\udcdd Notes: ' + doc.notes + '\n';
+  body += '\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\n';
+  body += '\nShared via SecureVault';
+  return body;
+}
+
+function switchEmailMethod(method){
+  emailMethod = method;
+  ['app','gmail','copy'].forEach(m=>{
+    document.getElementById('em-tab-'+m).classList.toggle('act', m===method);
+  });
+  const isClipboard = method === 'copy';
+  document.getElementById('email-form-area').style.display = isClipboard ? 'none' : 'block';
+  document.getElementById('email-copy-area').style.display = isClipboard ? 'block' : 'none';
+
+  if(isClipboard){
+    const doc = docs.find(d=>d.id===emailDocId);
+    if(doc){
+      const subj = document.getElementById('email-subject').value || ('Document: ' + doc.name);
+      const body = document.getElementById('email-body').value || buildEmailBody(doc);
+      document.getElementById('email-copy-text').value = 'Subject: ' + subj + '\n\n' + body;
+    }
+  }
+}
+
+async function sendEmail(){
+  const doc = docs.find(d=>d.id===emailDocId);
+  if(!doc) return;
+
+  const to      = document.getElementById('email-to').value.trim();
+  const subject = document.getElementById('email-subject').value.trim() || ('Document: ' + doc.name);
+  const body    = document.getElementById('email-body').value.trim() || buildEmailBody(doc);
+
+  // Try Web Share API with actual file first (works on mobile Chrome/Safari)
+  if(doc.fileData && navigator.canShare){
+    try{
+      const byteStr = atob(doc.fileData);
+      const arr = new Uint8Array(byteStr.length);
+      for(let i=0;i<byteStr.length;i++) arr[i]=byteStr.charCodeAt(i);
+      const blob = new Blob([arr],{type: doc.fileType||'application/octet-stream'});
+      const ext = doc.fileType==='application/pdf'?'.pdf':doc.fileType&&doc.fileType.startsWith('image/')?'.jpg':'';
+      const fileName = doc.fileName || (doc.name + ext);
+      const file = new File([blob], fileName, {type: blob.type});
+      if(navigator.canShare({files:[file]})){
+        closeOv('ov-email');
+        await navigator.share({files:[file], title: subject, text: body});
+        showToast('✅ File shared successfully!','ok');
+        return;
+      }
+    } catch(e){
+      if(e.name==='AbortError'){ closeOv('ov-email'); return; }
+      console.warn('File share failed, falling back:',e);
+    }
+  }
+
+  // Fallback: download file + open mail app
+  if(doc.fileData){
+    const a = document.createElement('a');
+    a.href = 'data:' + doc.fileType + ';base64,' + doc.fileData;
+    a.download = doc.fileName || doc.name;
+    a.click();
+    showToast('📥 File downloaded — attach it in your mail app!','ok');
+  }
+
+  if(emailMethod === 'gmail'){
+    const url = 'https://mail.google.com/mail/?view=cm' +
+      (to      ? '&to='      + encodeURIComponent(to)      : '') +
+      '&su='   + encodeURIComponent(subject) +
+      '&body=' + encodeURIComponent(body);
+    window.open(url, '_blank');
+  } else {
+    const mailto = 'mailto:' + encodeURIComponent(to) +
+      '?subject=' + encodeURIComponent(subject) +
+      '&body='    + encodeURIComponent(body);
+    window.location.href = mailto;
+  }
+
+  closeOv('ov-email');
+  showToast('✉️ Email client opened!','ok');
+}
+
+function copyEmailText(){
+  const txt = document.getElementById('email-copy-text').value;
+  if(!txt) return;
+  navigator.clipboard.writeText(txt).then(()=>{
+    showToast('📋 Copied to clipboard!','ok');
+    closeOv('ov-email');
+  }).catch(()=>{
+    document.getElementById('email-copy-text').select();
+    document.execCommand('copy');
+    showToast('📋 Copied!','ok');
+    closeOv('ov-email');
+  });
+}
+
+// ══ DELETE ══
+function askDelete(id){
+  const doc=docs.find(d=>d.id===id);
+  if(!doc) return;
+  pendingDel=id;
+  document.getElementById('confirm-msg').textContent=`Delete "${doc.name}"? This cannot be undone.`;
+  document.getElementById('confirm-yes').onclick=function(){ doDelete(); closeOv('ov-confirm'); };
+  openOv('ov-confirm');
+}
+function doDelete(){
+  docs=docs.filter(d=>d.id!==pendingDel);
+  saveDocs(); pendingDel=null;
+  renderDocs(); renderHome();
+  showToast('🗑️ Document deleted','ok');
+}
+
+// ══ HOME ══
+function renderHome(){
+  const total=docs.length;
+  const expired=docs.filter(d=>expiryStatus(d.expiry)==='expired').length;
+  const expiring=docs.filter(d=>expiryStatus(d.expiry)==='expiring').length;
+  const ok=docs.filter(d=>expiryStatus(d.expiry)==='ok').length;
+
+  document.getElementById('home-stats').innerHTML=`
+    <div class="stat"><div class="lb">Total Docs</div><div class="vl p">${total}</div></div>
+    <div class="stat"><div class="lb">Valid</div><div class="vl g">${ok}</div></div>
+    <div class="stat"><div class="lb">Expiring Soon</div><div class="vl w">${expiring}</div></div>
+    <div class="stat"><div class="lb">Expired</div><div class="vl r">${expired}</div></div>`;
+
+  // Alert banners
+  let alerts='';
+  if(expired>0) alerts+=`<div class="alert-bar">❌ ${expired} document${expired>1?'s':''} have expired! Please renew.</div>`;
+  if(expiring>0) alerts+=`<div class="alert-bar warn">⚠️ ${expiring} document${expiring>1?'s':''} expiring within 30 days.</div>`;
+  document.getElementById('expiry-alerts').innerHTML=alerts;
+
+  // Recent docs
+  const recent=docs.slice(0,4);
+  if(!recent.length){
+    document.getElementById('home-recent').innerHTML=`<div class="empty"><div class="empty-icon">📂</div><div class="empty-title">No documents yet</div><div style="font-size:12px;color:var(--text3);margin-top:4px">Tap ➕ Add Doc to get started</div></div>`;
+  } else {
+    document.getElementById('home-recent').innerHTML=`<div class="doc-list">${recent.map(docListItem).join('')}</div>`;
+  }
+}
+
+// ══ EXPIRY PANEL ══
+function renderExpiry(){
+  const withExp=docs.filter(d=>d.expiry).sort((a,b)=>new Date(a.expiry)-new Date(b.expiry));
+  if(!withExp.length){
+    document.getElementById('expiry-timeline').innerHTML=`<div class="empty"><div class="empty-icon">📅</div><div class="empty-title">No documents with expiry dates</div></div>`;
+    return;
+  }
+  document.getElementById('expiry-timeline').innerHTML=`<div class="timeline">${withExp.map(doc=>{
+    const d=getDaysToExpiry(doc.expiry);
+    const s=expiryStatus(doc.expiry);
+    const clr=s==='expired'?'var(--danger)':s==='expiring'?'var(--warn)':'var(--ok)';
+    const lbl=s==='expired'?`Expired ${Math.abs(d)}d ago`:d===0?'Today!':d<=30?`${d} days left`:`${d} days`;
+    const lclr=s==='expired'?'exp-bad':s==='expiring'?'exp-warn':'exp-ok';
+    return `<div class="tl-item">
+      <div class="tl-dot" style="background:${clr}"></div>
+      <div class="tl-info">
+        <div class="tl-name">${catIcon(doc.category)} ${doc.name}</div>
+        <div class="tl-date">${formatDate(doc.expiry)}${doc.number?' · '+doc.number:''}</div>
+      </div>
+      <span class="tl-days ${lclr}">${lbl}</span>
+    </div>`;
+  }).join('')}</div>`;
+}
+
+// ══ UTILS ══
+function formatDate(str){
+  if(!str) return '-';
+  try{ return new Date(str).toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'}); }catch(e){ return str; }
+}
+function openOv(id){ document.getElementById(id).classList.add('open'); }
+function closeOv(id){ document.getElementById(id).classList.remove('open'); }
+
+function showToast(msg,type=''){
+  const t=document.getElementById('toast');
+  t.textContent=msg; t.className='toast'+(type?' '+type:'');
+  t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),2800);
+}
+
+// ══ CHANGE PASSWORD ══
+async function changePwd(){
+  const cur=document.getElementById('cur-pass').value;
+  const nw=document.getElementById('new-pass').value;
+  const cf=document.getElementById('conf-pass').value;
+  const err=document.getElementById('pwd-err');
+  err.textContent='';
+  if(!cur){ err.textContent='Enter current password.'; return; }
+  const hcur=await sha256(cur);
+  if(hcur!==localStorage.getItem(LS_PASS)){ err.textContent='Current password incorrect.'; return; }
+  if(nw.length<4){ err.textContent='New password must be 4+ characters.'; return; }
+  if(nw!==cf){ err.textContent='Passwords do not match.'; return; }
+  localStorage.setItem(LS_PASS,await sha256(nw));
+  document.getElementById('cur-pass').value='';
+  document.getElementById('new-pass').value='';
+  document.getElementById('conf-pass').value='';
+  showToast('✅ Password changed!','ok');
+}
+
+// ══ ENCRYPTED BACKUP / RESTORE ══
+const BACKUP_MAGIC = 'SVAULT2';  // file signature — reject any other file
+
+// Derive AES-GCM key from password using PBKDF2
+async function deriveKey(password, salt){
+  const enc = new TextEncoder();
+  const keyMat = await crypto.subtle.importKey('raw', enc.encode(password), 'PBKDF2', false, ['deriveKey']);
+  return crypto.subtle.deriveKey(
+    {name:'PBKDF2', salt, iterations:200000, hash:'SHA-256'},
+    keyMat,
+    {name:'AES-GCM', length:256},
+    false,
+    ['encrypt','decrypt']
+  );
+}
+
+// Get raw password (we stored the hash, so we need user to re-enter for backup)
+// Instead use the stored hash as the encryption key source — consistent & no re-entry needed
+async function getBackupKey(){
+  const passHash = localStorage.getItem(LS_PASS) || 'default';
+  const salt = new TextEncoder().encode('SecureVaultSalt2024v2');
+  const km = await crypto.subtle.importKey('raw', new TextEncoder().encode(passHash), 'PBKDF2', false, ['deriveKey']);
+  return crypto.subtle.deriveKey(
+    {name:'PBKDF2', salt, iterations:100000, hash:'SHA-256'},
+    km,
+    {name:'AES-GCM', length:256},
+    false,
+    ['encrypt','decrypt']
+  );
+}
+
+async function doEncryptedBackup(silent=false){
+  try {
+    const payload = JSON.stringify({
+      magic: BACKUP_MAGIC,
+      version: 2,
+      created: new Date().toISOString(),
+      docs: docs
+    });
+    const iv = crypto.getRandomValues(new Uint8Array(12));
+    const key = await getBackupKey();
+    const enc = new TextEncoder();
+    const cipherBuf = await crypto.subtle.encrypt({name:'AES-GCM', iv}, key, enc.encode(payload));
+
+    // Build binary: [7 bytes magic header] + [12 bytes iv] + [ciphertext]
+    const header = enc.encode(BACKUP_MAGIC); // 7 bytes
+    const combined = new Uint8Array(header.length + iv.length + cipherBuf.byteLength);
+    combined.set(header, 0);
+    combined.set(iv, header.length);
+    combined.set(new Uint8Array(cipherBuf), header.length + iv.length);
+
+    const blob = new Blob([combined], {type:'application/octet-stream'});
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    const ts = new Date().toISOString().slice(0,16).replace('T','_').replace(':','-');
+    a.download = `securevault_${ts}.svbak`;
+    a.click();
+    URL.revokeObjectURL(a.href);
+
+    // Save last backup time
+    const now = new Date().toISOString();
+    localStorage.setItem('sv_last_backup', now);
+    updateBackupUI();
+    if(!silent) showToast('✅ Encrypted backup downloaded!','ok');
+  } catch(e){
+    showToast('❌ Backup failed: '+e.message,'err');
+  }
+}
+
+async function doRestore(inp){
+  const file = inp.files[0];
+  if(!file){ return; }
+  inp.value='';
+
+  // Check extension
+  if(!file.name.endsWith('.svbak')){
+    showToast('❌ Invalid file. Use a .svbak backup file.','err');
+    return;
+  }
+
+  try {
+    const buf = await file.arrayBuffer();
+    const bytes = new Uint8Array(buf);
+    const dec = new TextDecoder();
+
+    // Check magic header
+    const magic = dec.decode(bytes.slice(0, 7));
+    if(magic !== BACKUP_MAGIC){
+      showToast('❌ Invalid or corrupted backup file.','err');
+      return;
+    }
+
+    const iv = bytes.slice(7, 19);
+    const cipherBytes = bytes.slice(19);
+
+    const key = await getBackupKey();
+    let plainBuf;
+    try {
+      plainBuf = await crypto.subtle.decrypt({name:'AES-GCM', iv}, key, cipherBytes);
+    } catch(e){
+      showToast('❌ Wrong password or corrupted file. Cannot restore.','err');
+      return;
+    }
+
+    const plain = dec.decode(plainBuf);
+    const data = JSON.parse(plain);
+
+    if(!data.docs || !Array.isArray(data.docs)){
+      showToast('❌ Invalid backup content.','err');
+      return;
+    }
+
+    // Confirm restore
+    if(!confirm(`Restore ${data.docs.length} documents from backup?\nCreated: ${formatDate(data.created?.slice(0,10))}\n\nThis will MERGE with existing documents.`)) return;
+
+    const existIds = new Set(docs.map(d=>d.id));
+    const toAdd = data.docs.filter(d=>!existIds.has(d.id));
+    docs = [...toAdd, ...docs];
+    saveDocs();
+    renderHome();
+    updateBackupUI();
+    showToast(`✅ Restored ${toAdd.length} documents!`,'ok');
+  } catch(e){
+    showToast('❌ Restore failed: '+e.message,'err');
+  }
+}
+
+// ══ AUTO BACKUP ══
+const LS_AUTOBACKUP = 'sv_autobackup';
+const LS_AUTOBACKUP_FREQ = 'sv_autobackup_freq';
+const LS_LAST_BACKUP = 'sv_last_backup';
+const LS_LAST_AUTOBACKUP_DAY = 'sv_last_ab_day';
+
+function toggleAutoBackup(enabled){
+  localStorage.setItem(LS_AUTOBACKUP, enabled ? '1':'0');
+  document.getElementById('autobackup-options').style.display = enabled ? 'block':'none';
+  updateBackupUI();
+  if(enabled) showToast('⚡ Auto backup enabled!','ok');
+}
+
+function saveAutoBackupSettings(){
+  const freq = document.getElementById('autobackup-freq').value;
+  localStorage.setItem(LS_AUTOBACKUP_FREQ, freq);
+}
+
+function checkAutoBackup(){
+  const enabled = localStorage.getItem(LS_AUTOBACKUP)==='1';
+  if(!enabled) return;
+  const freq = localStorage.getItem(LS_AUTOBACKUP_FREQ)||'daily';
+  const lastDay = localStorage.getItem(LS_LAST_AUTOBACKUP_DAY)||'';
+  const today = new Date().toISOString().slice(0,10);
+  const lastWeek = localStorage.getItem('sv_last_ab_week')||'';
+  const thisWeek = getWeekKey();
+
+  if(freq==='everysave') return; // handled on save
+  if(freq==='daily' && lastDay===today) return;
+  if(freq==='weekly' && lastWeek===thisWeek) return;
+
+  // Run backup
+  setTimeout(async()=>{
+    await doEncryptedBackup(true);
+    localStorage.setItem(LS_LAST_AUTOBACKUP_DAY, today);
+    localStorage.setItem('sv_last_ab_week', thisWeek);
+    showToast('⚡ Auto backup done!','ok');
+  }, 1500);
+}
+
+function getWeekKey(){
+  const d = new Date();
+  const start = new Date(d.getFullYear(),0,1);
+  const week = Math.ceil(((d-start)/86400000 + start.getDay()+1)/7);
+  return d.getFullYear()+'-W'+week;
+}
+
+// Called after every doc save for 'everysave' mode
+function autoBackupOnSave(){
+  const enabled = localStorage.getItem(LS_AUTOBACKUP)==='1';
+  const freq = localStorage.getItem(LS_AUTOBACKUP_FREQ)||'daily';
+  if(enabled && freq==='everysave'){
+    setTimeout(()=>doEncryptedBackup(true),500);
+  }
+}
+
+function updateBackupUI(){
+  // Last backup time
+  const last = localStorage.getItem(LS_LAST_BACKUP);
+  document.getElementById('last-backup-time').textContent = last ? formatDate(last.slice(0,10))+' '+last.slice(11,16) : 'Never';
+  // Doc count
+  document.getElementById('backup-doc-count').textContent = docs.length + ' docs';
+  // Auto backup status
+  const enabled = localStorage.getItem(LS_AUTOBACKUP)==='1';
+  const freq = localStorage.getItem(LS_AUTOBACKUP_FREQ)||'daily';
+  const freqLabels = {everysave:'Every Save',daily:'Daily',weekly:'Weekly'};
+  const statusEl = document.getElementById('auto-backup-status-label');
+  statusEl.textContent = enabled ? freqLabels[freq]||'On' : 'Off';
+  statusEl.style.color = enabled ? 'var(--ok)':'var(--text3)';
+  // Toggle & options
+  const tog = document.getElementById('tog-autobackup');
+  if(tog){ tog.checked = enabled; }
+  document.getElementById('autobackup-options').style.display = enabled?'block':'none';
+  const freqSel = document.getElementById('autobackup-freq');
+  if(freqSel) freqSel.value = freq;
+}
+
+function clearAllData(){
+  if(!confirm('Delete ALL documents? This cannot be undone!')) return;
+  docs=[];
+  saveDocs();
+  renderHome();
+  updateBackupUI();
+  showToast('🗑️ All documents cleared','ok');
+}
+
+
+// ══ PIN LOCK ══
+const LS_PIN = 'sv_pin';
+const LS_PIN_ENABLED = 'sv_pin_enabled';
+
+let pinBuffer = '';
+let setPinBuffer1 = '';
+let setPinBuffer2 = '';
+
+// ── Init: check if PIN enabled on load ──
+const _origInit = window.addEventListener;
+window.addEventListener('load', function(){
+  updatePinSettingsUI();
+}, false);
+
+// Override showApp to check PIN mode
+function showApp(){
+  document.getElementById('login-screen').classList.add('hide');
+  document.getElementById('main-app').style.display='block';
+  renderHome();
+  updateBackupUI();
+  checkAutoBackup();
+  updatePinSettingsUI();
+}
+
+function doLock(){
+  sessionStorage.removeItem(LS_SESSION);
+  document.getElementById('main-app').style.display='none';
+  const pinEnabled = localStorage.getItem(LS_PIN_ENABLED)==='1';
+  const pinHash = localStorage.getItem(LS_PIN);
+  if(pinEnabled && pinHash){
+    showPinScreen();
+  } else {
+    document.getElementById('login-screen').classList.remove('hide');
+  }
+}
+
+// ── PIN Screen ──
+function showPinScreen(){
+  pinBuffer = '';
+  updatePinDots('pin-dots', 'pd', 0);
+  document.getElementById('pin-err').textContent = '';
+  document.getElementById('pin-screen').classList.add('active');
+  document.getElementById('login-screen').classList.add('hide');
+}
+
+function hidePinScreen(){
+  document.getElementById('pin-screen').classList.remove('active');
+}
+
+function switchToPassword(){
+  hidePinScreen();
+  document.getElementById('login-screen').classList.remove('hide');
+  document.getElementById('login-pass').value='';
+  document.getElementById('login-err').textContent='';
+}
+
+function pinKey(d){
+  if(pinBuffer.length >= 4) return;
+  pinBuffer += d;
+  updatePinDots('pin-dots','pd', pinBuffer.length);
+  if(pinBuffer.length===4) setTimeout(pinSubmit, 120);
+}
+
+function pinDel(){
+  if(!pinBuffer.length) return;
+  pinBuffer = pinBuffer.slice(0,-1);
+  updatePinDots('pin-dots','pd', pinBuffer.length);
+}
+
+async function pinSubmit(){
+  if(!pinBuffer.length){ shakePin(); return; }
+  const stored = localStorage.getItem(LS_PIN);
+  const h = await sha256(pinBuffer);
+  if(h === stored){
+    hidePinScreen();
+    sessionStorage.setItem(LS_SESSION,'1');
+    showApp();
+  } else {
+    document.getElementById('pin-err').textContent = '❌ Incorrect PIN';
+    markDotsError('pd');
+    shakePin();
+    setTimeout(()=>{
+      pinBuffer='';
+      updatePinDots('pin-dots','pd',0);
+      document.getElementById('pin-err').textContent='';
+    }, 900);
+  }
+}
+
+function shakePin(){
+  const dots = document.getElementById('pin-dots');
+  dots.classList.remove('pin-shake');
+  void dots.offsetWidth;
+  dots.classList.add('pin-shake');
+  setTimeout(()=>dots.classList.remove('pin-shake'),400);
+}
+
+function updatePinDots(containerId, prefix, count){
+  for(let i=0;i<4;i++){
+    const d = document.getElementById(prefix+i);
+    if(!d) continue;
+    d.classList.toggle('filled', i < count);
+    d.classList.remove('error');
+  }
+}
+
+function markDotsError(prefix){
+  for(let i=0;i<4;i++){
+    const d = document.getElementById(prefix+i);
+    if(d){ d.classList.add('error'); d.classList.remove('filled'); }
+  }
+}
+
+// ── Set PIN Modal ──
+function openSetPin(){
+  setPinBuffer1=''; setPinBuffer2='';
+  updatePinDots('setpin-dots1','sp1d',0);
+  updatePinDots('setpin-dots2','sp2d',0);
+  document.getElementById('setpin-err1').textContent='';
+  document.getElementById('setpin-err2').textContent='';
+  document.getElementById('setpin-step1').classList.add('act');
+  document.getElementById('setpin-step2').classList.remove('act');
+  document.getElementById('ov-setpin').classList.add('open');
+}
+
+function setPinKey(step, d){
+  if(step===1){
+    if(setPinBuffer1.length>=4) return;
+    setPinBuffer1 += d;
+    updatePinDots('setpin-dots1','sp1d',setPinBuffer1.length);
+  } else {
+    if(setPinBuffer2.length>=4) return;
+    setPinBuffer2 += d;
+    updatePinDots('setpin-dots2','sp2d',setPinBuffer2.length);
+  }
+}
+
+function setPinDel(step){
+  if(step===1){
+    setPinBuffer1=setPinBuffer1.slice(0,-1);
+    updatePinDots('setpin-dots1','sp1d',setPinBuffer1.length);
+  } else {
+    setPinBuffer2=setPinBuffer2.slice(0,-1);
+    updatePinDots('setpin-dots2','sp2d',setPinBuffer2.length);
+  }
+}
+
+function setPinNext(){
+  if(setPinBuffer1.length<4){ document.getElementById('setpin-err1').textContent='Enter 4 digits'; return; }
+  document.getElementById('setpin-step1').classList.remove('act');
+  document.getElementById('setpin-step2').classList.add('act');
+}
+
+async function setPinSave(){
+  if(setPinBuffer2.length<4){ document.getElementById('setpin-err2').textContent='Enter 4 digits'; return; }
+  if(setPinBuffer1 !== setPinBuffer2){
+    document.getElementById('setpin-err2').textContent='PINs do not match!';
+    markDotsError('sp2d');
+    setTimeout(()=>{
+      setPinBuffer2='';
+      updatePinDots('setpin-dots2','sp2d',0);
+      document.getElementById('setpin-err2').textContent='';
+    },800);
+    return;
+  }
+  const h = await sha256(setPinBuffer1);
+  localStorage.setItem(LS_PIN, h);
+  localStorage.setItem(LS_PIN_ENABLED,'1');
+  closeOv('ov-setpin');
+  updatePinSettingsUI();
+  showToast('✅ PIN set successfully!','ok');
+}
+
+function togglePinLock(enabled){
+  if(enabled){
+    const existing = localStorage.getItem(LS_PIN);
+    if(!existing){
+      // Need to set PIN first
+      localStorage.setItem(LS_PIN_ENABLED,'1');
+      openSetPin();
+    } else {
+      localStorage.setItem(LS_PIN_ENABLED,'1');
+    }
+  } else {
+    localStorage.setItem(LS_PIN_ENABLED,'0');
+  }
+  updatePinSettingsUI();
+}
+
+function removePin(){
+  if(!confirm('Remove PIN lock? You will use password to login.')) return;
+  localStorage.removeItem(LS_PIN);
+  localStorage.setItem(LS_PIN_ENABLED,'0');
+  updatePinSettingsUI();
+  showToast('PIN removed','ok');
+}
+
+function updatePinSettingsUI(){
+  const tog = document.getElementById('tog-pin');
+  const infoEl = document.getElementById('pin-settings-info');
+  const setupEl = document.getElementById('pin-settings-setup');
+  const enabled = localStorage.getItem(LS_PIN_ENABLED)==='1';
+  const hasPin = !!localStorage.getItem(LS_PIN);
+  if(tog) tog.checked = enabled && hasPin;
+  if(infoEl) infoEl.style.display = (enabled && hasPin) ? 'block':'none';
+  if(setupEl) setupEl.style.display = (enabled && !hasPin) ? 'block':'none';
+}
+
+// ── Override window.load to check PIN at startup ──
+
+// ══ SPLASH SCREEN ══
+(function(){
+  const splash = document.getElementById('splash-screen');
+  setTimeout(()=>{
+    splash.classList.add('fade-out');
+    setTimeout(()=>{ splash.style.display='none'; }, 650);
+  }, 2400);
+})();
+
+// ══ KEYBOARD ENTER ══
+document.getElementById('login-pass').addEventListener('keydown',e=>{ if(e.key==='Enter') doLogin(); });
+document.getElementById('login-user').addEventListener('keydown',e=>{ if(e.key==='Enter') document.getElementById('login-pass').focus(); });
+
+// ══ NOTE TAGS ══
+function toggleNoteTag(el, textareaId){
+  const ta = document.getElementById(textareaId);
+  const tag = el.textContent.trim();
+  const active = el.style.background === 'var(--pri)' || el.getAttribute('data-active')==='1';
+  if(active){
+    // Remove tag from textarea
+    el.style.background = 'var(--bg3)';
+    el.style.color = 'var(--text2)';
+    el.style.borderColor = 'var(--border)';
+    el.setAttribute('data-active','0');
+    const lines = ta.value.split('\n').filter(l=>l.trim()!==tag);
+    ta.value = lines.join('\n').trim();
+  } else {
+    // Add tag to textarea
+    el.style.background = 'var(--pri)';
+    el.style.color = '#0f1923';
+    el.style.borderColor = 'var(--pri)';
+    el.setAttribute('data-active','1');
+    ta.value = ta.value.trim() ? ta.value.trim() + '\n' + tag : tag;
+  }
+}
+
+// Reset tag highlights when notes cleared
+function resetNoteTags(containerId){
+  const container = document.getElementById(containerId);
+  if(!container) return;
+  container.querySelectorAll('span[data-active]').forEach(el=>{
+    el.style.background='var(--bg3)';
+    el.style.color='var(--text2)';
+    el.style.borderColor='var(--border)';
+    el.setAttribute('data-active','0');
+  });
+}
+
+// Close overlays on backdrop click
+document.querySelectorAll('.ov').forEach(ov=>{
+  ov.addEventListener('click',function(e){ if(e.target===this) this.classList.remove('open'); });
+});
+
+// ══ EDIT DOCUMENT ══
+let editDocId = null;
+let editNewFile = null; // {data, type, name} if user picked new file
+
+function openEditDoc(id){
+  const doc = docs.find(d=>d.id===id);
+  if(!doc) return;
+  editDocId = id;
+  editNewFile = null;
+
+  // Fill fields
+  document.getElementById('edit-name').value    = doc.name    || '';
+  document.getElementById('edit-number').value  = doc.number  || '';
+  document.getElementById('edit-issuer').value  = doc.issuer  || '';
+  document.getElementById('edit-issue').value   = doc.issue   || '';
+  document.getElementById('edit-expiry').value  = doc.expiry  || '';
+  document.getElementById('edit-notes').value   = doc.notes   || '';
+
+  // Category select
+  const catSel = document.getElementById('edit-cat');
+  for(let i=0;i<catSel.options.length;i++){
+    if(catSel.options[i].value===doc.category||catSel.options[i].text===doc.category){
+      catSel.selectedIndex=i; break;
+    }
+  }
+
+  // Show current file info
+  const icon  = document.getElementById('edit-file-icon');
+  const label = document.getElementById('edit-file-label');
+  const sub   = document.getElementById('edit-file-sub');
+  if(doc.fileData){
+    icon.textContent  = doc.fileType==='application/pdf' ? '📑' : '🖼️';
+    label.textContent = doc.fileName || doc.name;
+    sub.textContent   = 'Tap to replace with a new file';
+  } else {
+    icon.textContent  = '📂';
+    label.textContent = 'Tap to upload a file';
+    sub.textContent   = 'Images & PDF supported';
+  }
+
+  document.getElementById('edit-msg').style.display='none';
+  openOv('ov-edit');
+}
+
+function handleEditFile(files){
+  if(!files||!files.length) return;
+  const file = files[0];
+  const reader = new FileReader();
+  reader.onload = function(e){
+    const b64 = e.target.result.split(',')[1];
+    editNewFile = {data: b64, type: file.type, name: file.name};
+    const icon  = document.getElementById('edit-file-icon');
+    const label = document.getElementById('edit-file-label');
+    const sub   = document.getElementById('edit-file-sub');
+    icon.textContent  = file.type==='application/pdf' ? '📑' : '🖼️';
+    label.textContent = '✅ ' + file.name;
+    sub.textContent   = 'New file ready — will replace on save';
+  };
+  reader.readAsDataURL(file);
+}
+
+function saveEditDoc(){
+  const name = document.getElementById('edit-name').value.trim();
+  if(!name){ showToast('❌ Document name required','err'); return; }
+
+  const idx = docs.findIndex(d=>d.id===editDocId);
+  if(idx===-1) return;
+
+  docs[idx].name    = name;
+  docs[idx].category= document.getElementById('edit-cat').value;
+  docs[idx].number  = document.getElementById('edit-number').value.trim();
+  docs[idx].issuer  = document.getElementById('edit-issuer').value.trim();
+  docs[idx].issue   = document.getElementById('edit-issue').value;
+  docs[idx].expiry  = document.getElementById('edit-expiry').value;
+  docs[idx].notes   = document.getElementById('edit-notes').value.trim();
+
+  if(editNewFile){
+    docs[idx].fileData = editNewFile.data;
+    docs[idx].fileType = editNewFile.type;
+    docs[idx].fileName = editNewFile.name;
+  }
+
+  saveDocs();
+  renderDocs();
+  closeOv('ov-edit');
+  showToast('✅ Document updated!','ok');
+}
+</script>
+</body>
+</html>
